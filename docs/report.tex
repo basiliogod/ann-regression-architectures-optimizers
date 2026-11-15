@@ -60,7 +60,38 @@ Funchal, Portugal \\
 
 \section{Metodologia}
 
-\subsection{Aquisição de dados e inspeção inicial}
+\subsection{Aquisição de Dados e Inspeção Inicial}
+
+Para este estudo foram utilizados dois conjuntos de dados públicos com naturezas distintas: um problema de regressão estática tabular e um problema de previsão de séries temporais univariadas a um passo no futuro.
+
+O primeiro conjunto de dados, \textit{Concrete Compressive Strength} \cite{b2}, \cite{b3}, é composto por $1\,030$ observações experimentais sem valores em falta. O objetivo consiste em estimar a resistência à compressão do betão a partir de oito variáveis de entrada quantitativas que descrevem a composição química/física da mistura e o seu tempo de cura. A Tabela~\ref{tab:concrete_vars} resume as características, unidades de medida e descrições de todas as variáveis deste conjunto de dados.
+
+\begin{table}[H]
+\caption{Descrição das variáveis do conjunto de dados \textit{Concrete Compressive Strength}.}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Variável} & \textbf{Unidade} & \textbf{Descrição} \\
+\midrule
+\textit{Cement} & $\text{kg/m}^3$ & Cimento na mistura (Entrada)\\
+\textit{Blast Furnace Slag} & $\text{kg/m}^3$ & Escória de alto-forno (Entrada)\\
+\textit{Fly Ash} & $\text{kg/m}^3$ & Cinzas volantes (Entrada)\\
+\textit{Water} & $\text{kg/m}^3$ & Água na mistura (Entrada)\\
+\textit{Superplasticizer} & $\text{kg/m}^3$ & Superplastificante (Entrada)\\
+\textit{Coarse Aggregate} & $\text{kg/m}^3$ & Agregado grosso (Entrada)\\
+\textit{Fine Aggregate} & $\text{kg/m}^3$ & Agregado fino (Entrada)\\
+\textit{Age} & Dias ($1\text{--}365$) & Idade de cura (Entrada)\\
+\textit{Compressive Strength} & $\text{MPa}$ & Resistência à compressão (Alvo)\\
+\bottomrule
+\end{tabular}
+\label{tab:concrete_vars}
+\end{center}
+\end{table}
+
+O segundo conjunto de dados, \textit{Daily Minimum Temperatures in Melbourne} \cite{b4}, representa uma série temporal com $3\,650$ registos diários contínuos, cobrindo um período de 10 anos entre 1 de janeiro de 1981 e 31 de dezembro de 1990. Cada observação é constituída por duas colunas: a data do registo (no formato \texttt{AAAA-MM-DD}) e a temperatura mínima diária registada na cidade de Melbourne, expressa em graus Celsius ($^{\circ}\text{C}$). Neste problema, a informação disponível até ao dia $t$ (valores passados da temperatura e eventuais atributos de calendário) é utilizada para prever a temperatura mínima do dia seguinte, $T(t+1)$.
+
+Na inspeção inicial de ambos os ficheiros, verificou-se a integridade estrutural dos registos e a necessidade de assegurar portabilidade nativa entre os ambientes MATLAB e GNU Octave sem depender de pacotes externos de leitura de folhas de cálculo \cite{b1}. Para esse efeito, o ficheiro original do conjunto de dados \textit{Concrete} (disponibilizado no formato \texttt{.xls}) foi previamente convertido para o formato \texttt{.csv}, preservando a precisão numérica das suas $1\,030$ linhas e $9$ colunas \cite{b1, b2}. Por sua vez, no conjunto de dados de Melbourne (já disponibilizado em \texttt{.csv}), a inspeção preliminar revelou a existência de registos com formatação textual anómala (como pontos de interrogação junto a alguns valores numéricos) que exigem limpeza durante a etapa de pré-processamento \cite{b1, b4}.
+
 \subsection{Análise Exploratória dos Dados}
 \subsection{Pré-processamento e Feature Engineering}
 \subsection{Particionamento dos Dados}

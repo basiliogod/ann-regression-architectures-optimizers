@@ -167,6 +167,32 @@ Por fim, a verificação de anomalias e mudanças abruptas (Fig.~\ref{fig:eda_me
 \end{figure}
 
 \subsection{Pré-processamento e Feature Engineering}
+
+Com base nas evidências recolhidas durante a inspeção inicial e a análise exploratória, aplicaram-se transformações específicas a cada conjunto de dados com o objetivo de melhorar a capacidade de representação das redes neuronais, mantendo estritamente o mesmo vetor de atributos para todas as arquiteturas e algoritmos avaliados dentro de cada problema.
+
+\subsubsection{Concrete}
+O conjunto de dados \textit{Concrete} não apresentou valores em falta nem observações defeituosas, não exigindo imputação ou remoção de registos. Contudo, para incorporar conhecimento físico do domínio e mitigar a forte assimetria observada na idade de cura, adicionaram-se dois atributos derivados às $8$ variáveis originais:
+\begin{itemize}
+    \item \textbf{Rácio Água/Cimento (\textit{Water/Cement Ratio}):} Definido pela razão $\text{Water}/\text{Cement}$. Na engenharia de materiais, a lei de Abrams estabelece que a relação água/cimento é o principal fator determinante da porosidade da pasta hidratada e, consequentemente, da resistência mecânica final do betão.
+    \item \textbf{Logaritmo da Idade (\textit{$\ln(Age)$}):} Como evidenciado pelos diagramas de dispersão da EDA, o ganho de resistência ocorre de forma acelerada nos primeiros dias de cura ($1$ a $28\text{ dias}$) e estabiliza gradualmente até aos $365\text{ dias}$. A transformação logarítmica lineariza esta curva de hidratação e reduz o enviesamento à direita da distribuição original.
+\end{itemize}
+
+\subsubsection{Melbourne}
+Na etapa de leitura do ficheiro de Melbourne, os $3$ registos que continham o caractere anómalo "\texttt{?}" junto ao valor numérico foram higienizados e convertidos para vírgula flutuante, resultando numa série contínua de $3\,650$ observações sem valores em falta.
+
+Para formular a previsão a um passo no futuro ($T(t+1)$) como um problema de aprendizagem supervisionada, cada vetor de entrada no instante $t$ foi construído a partir de uma janela temporal deslizante dos $p = 7$ valores mais recentes da série $[T(t), T(t-1), \dots, T(t-6)]$, complementada por duas componentes cíclicas de calendário:
+\begin{equation}
+\mathbf{x}_t = \left[ T(t), \dots, T(t-6), \sin\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right), \cos\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right) \right]
+\end{equation}
+onde $\text{doy}_t \in \{1, \dots, 365\}$ representa o dia do ano correspondente à data $t$. A escolha da janela $p = 7\text{ dias}$ justifica-se pela análise da Função de Autocorrelação (ACF), que exibe o decaimento mais acentuado da dependência probabilística de curto prazo durante a primeira semana, permitindo capturar a dinâmica meteorológica recente sem aumentar excessivamente a dimensionalidade da entrada ($d = 9$). Por sua vez, a codificação trigonométrica ($\sin$ e $\cos$) fornece ao modelo informação contínua e periódica sobre a fase do ciclo sazonal anual (evitando descontinuidades artificiais entre 31 de dezembro e 1 de janeiro), o que ajuda a compensar o facto de uma janela curta de $7\text{ dias}$ não observar diretamente a oscilação de $365\text{ dias}$. Este procedimento gerou $3\,643$ amostras completas sem qualquer fuga de informação futura (\textit{data leakage}).
+
+\subsubsection{Normalização}
+Dado que as variáveis de entrada apresentam ordens de grandeza muito distintas (por exemplo, os agregados no \textit{Concrete} atingem $1\,145\text{ kg/m}^3$ enquanto os atributos trigonométricos variam em $[-1, 1]$), aplicou-se a normalização \textit{Z-score} (média nula e desvio padrão unitário) a todas as entradas e à variável alvo:
+\begin{equation}
+z = \frac{x - \mu_{\text{treino}}}{\sigma_{\text{treino}}}
+\end{equation}
+Para evitar rigorosamente \textit{data leakage}, os parâmetros $\mu_{\text{treino}}$ e $\sigma_{\text{treino}}$ foram calculados exclusivamente sobre o subconjunto de treino após a partição dos dados, sendo posteriormente aplicados aos subconjuntos de validação e de teste. Para o cálculo das métricas finais de desempenho (MSE, RMSE e MAE), as previsões da rede são revertidas para as unidades físicas originais através da transformação inversa $\hat{y} = \hat{z} \cdot \sigma_{\text{treino}} + \mu_{\text{treino}}$.
+
 \subsection{Particionamento dos Dados}
 \subsection{Implementação e Verificação}
 \subsection{Ajuste de hiperparamêtros}

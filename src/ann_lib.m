@@ -8,6 +8,12 @@ function L = ann_lib()
     L.compute_acf    = @compute_acf;
     L.eda_concrete   = @eda_concrete;
     L.eda_melbourne  = @eda_melbourne;
+
+    L.fe_concrete         = @fe_concrete;
+    L.fe_melbourne        = @fe_melbourne;
+    L.fit_scaler          = @fit_scaler;
+    L.transform_data      = @transform_data;
+    L.inverse_transform_y = @inverse_transform_y;
 end
 
 function [X, y, var_names] = load_concrete(filepath)
@@ -372,4 +378,147 @@ function eda_info = eda_melbourne(dates, temps, fig_dir)
 
     print(h2, fullfile(fig_dir, 'eda_melbourne_acf_scatter.png'), '-dpng', '-r300');
     close(h2);
+end
+
+function [X_feat, feat_names] = fe_concrete(X, var_names)
+    % FE_CONCRETE Aplica engenharia de atributos ao dataset Concrete.
+    %   Adiciona:
+    %     1. Rácio Água/Cimento (Water / Cement)
+    %     2. Transformação logarítmica da idade: log(Age)
+    %   Entradas:
+    %       X          - Matriz original (1030 x 8)
+    %       var_names  - Nomes das variáveis originais
+    %   Saídas:
+    %       X_feat     - Matriz transformada (1030 x 10)
+    %       feat_names - Cell array com os 10 nomes das variáveis de entrada
+
+    % Coluna 1: Cement | Coluna 4: Water | Coluna 8: Age
+    water_cement_ratio = X(:, 4) ./ X(:, 1);
+    log_age            = log(X(:, 8));
+
+    X_feat = [X, water_cement_ratio, log_age];
+
+    feat_names = [var_names(1:8), {'Water/Cement Ratio', 'log(Age)'}];
+end
+
+function [X_win, y_win, dates_win, feat_names] = fe_melbourne(dates, temps, p, use_calendar)
+    % FE_MELBOURNE Constrói as janelas temporais e atributos de calendário.
+    %   Para cada instante t (de p até N-1), usa [T(t), T(t-1), ..., T(t-p+1)]
+    %   e opcionalmente sin/cos do dia do ano de t para prever T(t+1).
+    %   Entradas:
+    %       dates        - Cell array (N x 1) com datas 'AAAA-MM-DD'
+    %       temps        - Vetor coluna (N x 1) com temperaturas mínimas
+    %       p            - Tamanho da janela autoregressiva (ex: p = 7)
+    %       use_calendar - Booleano (true para incluir sin/cos do dia do ano)
+    %   Saídas:
+    %       X_win        - Matriz de entradas ((N-p) x d)
+    %       y_win        - Vetor alvo T(t+1) ((N-p) x 1)
+    %       dates_win    - Datas correspondentes ao alvo T(t+1)
+    %       feat_names   - Cell array com os nomes das entradas
+
+    N = length(temps);
+    num_samples = N - p;
+
+    % Calcula o dia do ano (1 a 365) para cada registo
+    days_in_month = [31 28 31 30 31 30 31 31 30 31 30 31];
+    cum_days = [0, cumsum(days_in_month(1:11))];
+    doy = zeros(N, 1);
+
+    for i = 1:N
+        m = str2double(dates{i}(6:7));
+        d = str2double(dates{i}(9:10));
+        val_doy = cum_days(m) + d;
+        if val_doy > 365
+            val_doy = 365;
+        end
+        doy(i) = val_doy;
+    end
+
+    if use_calendar
+        d = p + 2;
+    else
+        d = p;
+    end
+
+    X_win = zeros(num_samples, d);
+    y_win = zeros(num_samples, 1);
+    dates_win = cell(num_samples, 1);
+
+    % Constrói cada amostra sem qualquer fuga de informação futura (leakage)
+    for idx = 1:num_samples
+        t = p + idx - 1; % Índice atual t
+
+        % Janela dos p valores mais recentes: T(t), T(t-1), ..., T(t-p+1)
+        for lag = 0:(p - 1)
+            X_win(idx, lag + 1) = temps(t - lag);
+        end
+
+        % Atributos cíclicos do dia do ano conhecidos no instante t
+        if use_calendar
+            angle = 2 * pi * doy(t) / 365.0;
+            X_win(idx, p + 1) = sin(angle);
+            X_win(idx, p + 2) = cos(angle);
+        end
+
+        % Alvo: temperatura no dia seguinte T(t+1)
+        y_win(idx) = temps(t + 1);
+        dates_win{idx} = dates{t + 1};
+    end
+
+    % Nomes das features
+    feat_names = cell(1, d);
+    for lag = 0:(p - 1)
+        if lag == 0
+            feat_names{lag + 1} = 'T(t)';
+        else
+            feat_names{lag + 1} = sprintf('T(t-%d)', lag);
+        end
+    end
+    if use_calendar
+        feat_names{p + 1} = 'sin(2*pi*doy/365)';
+        feat_names{p + 2} = 'cos(2*pi*doy/365)';
+    end
+end
+
+function scaler = fit_scaler(X_tr, y_tr)
+    % FIT_SCALER Calcula estatísticas de normalização (Z-score) APENAS no treino.
+    %   Entradas:
+    %       X_tr   - Matriz de entradas de treino (N_tr x d)
+    %       y_tr   - Vetor alvo de treino (N_tr x 1)
+    %   Saídas:
+    %       scaler - Estrutura com médias e desvios padrão de X e y
+
+    scaler.x_mean = mean(X_tr, 1);
+    scaler.x_std  = std(X_tr, 0, 1);
+    % Proteção contra divisão por zero caso alguma coluna seja constante
+    scaler.x_std(scaler.x_std == 0) = 1;
+
+    scaler.y_mean = mean(y_tr);
+    scaler.y_std  = std(y_tr);
+    if scaler.y_std == 0
+        scaler.y_std = 1;
+    end
+end
+
+function [X_scaled, y_scaled] = transform_data(X, y, scaler)
+    % TRANSFORM_DATA Aplica a normalização Z-score usando as estatísticas do treino.
+    %  Entradas:
+    %      X      - Matriz de entradas
+    %      y      - Vetor alvo
+    %      scaler - Estrutura com médias e desvios padrão de treino
+    %  Saídas:
+    %      X_scaled - Matriz de entradas normalizada
+    %      y_scaled - Vetor alvo normalizado
+    X_scaled = (X - repmat(scaler.x_mean, size(X, 1), 1)) ./ repmat(scaler.x_std, size(X, 1), 1);
+    y_scaled = (y - scaler.y_mean) ./ scaler.y_std;
+end
+
+function y_orig = inverse_transform_y(y_scaled, scaler)
+    % INVERSE_TRANSFORM_Y Reverte a escala do alvo para as unidades originais.
+    %  Entradas:
+    %      y_scaled - Vetor alvo normalizado
+    %      scaler - Estrutura com médias e desvios padrão de treino
+    %  Saídas:
+    %      y_orig - Vetor alvo em unidades originais
+    y_orig = y_scaled .* scaler.y_std + scaler.y_mean;
 end

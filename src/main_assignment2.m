@@ -1,5 +1,12 @@
 % Script principal de execução do estudo comparativo.
 clear; clc; close all;
+% Compatibilidade gráfica para exportação headless no GNU Octave
+if exist('OCTAVE_VERSION', 'builtin')
+    available_tk = available_graphics_toolkits();
+    if ismember('gnuplot', available_tk)
+        graphics_toolkit('gnuplot');
+    end
+end
 
 % Obtém a diretoria absoluta onde este script está guardado (pasta src/)
 script_dir = fileparts(mfilename('fullpath'));
@@ -49,3 +56,16 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
     fprintf('Salto diário máximo               : %.2f C (%s)\n', eda_melb.max_jump, eda_melb.max_jump_date);
     fprintf('Saltos diários > 10 C             : %d\n', eda_melb.jumps_over_10);
     fprintf('Correlação lag-1 T(t) vs T(t+1)   : %.4f\n', eda_melb.r_lag1);
+
+% STEP 3: Pré-processamento e Feature Engineering
+    fprintf('A iniciar Step 3: Feature Engineering...\n');
+
+    % 3.1 Concrete: adiciona Water/Cement ratio e log(Age) -> d = 10 inputs
+    [X_conc_fe, feat_names_conc] = L.fe_concrete(X_conc, names_conc);
+    fprintf('Concrete: %d features preparadas (%s)\n', size(X_conc_fe, 2), strjoin(feat_names_conc, ', '));
+
+    % 3.2 Melbourne: janela p = 7 dias + sin/cos(doy) -> d = 9 inputs
+    p_window = 7;
+    use_cal  = true;
+    [X_melb_fe, y_melb_fe, dates_melb_fe, feat_names_melb] = L.fe_melbourne(dates_melb, temps_melb, p_window, use_cal);
+    fprintf('Melbourne: %d amostras criadas com janela p=%d e %d features (%s)\n\n', size(X_melb_fe, 1), p_window, size(X_melb_fe, 2), strjoin(feat_names_melb, ', '));

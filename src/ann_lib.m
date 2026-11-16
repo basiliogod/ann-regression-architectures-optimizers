@@ -17,6 +17,16 @@ function L = ann_lib()
 
     L.split_data               = @split_data;
     L.analyze_concrete_mixtures = @analyze_concrete_mixtures;
+
+    L.build_arch      = @build_arch;
+    L.init_params     = @init_params;
+    L.unpack_params   = @unpack_params;
+    L.forward_pass    = @forward_pass;
+    L.loss_grad       = @loss_grad;
+    L.check_gradient  = @check_gradient;
+    L.train_gd        = @train_gd;
+    L.train_bfgs      = @train_bfgs;
+    L.train_adam      = @train_adam;
 end
 
 function [X, y, var_names] = load_concrete(filepath)
@@ -604,4 +614,465 @@ function mix_info = analyze_concrete_mixtures(X_raw, idx_tr, idx_va, idx_te)
     mix_info.overlap_tr_va   = overlap_tr_va;
     mix_info.overlap_tr_te   = overlap_tr_te;
     mix_info.pct_te_in_tr    = 100 * overlap_tr_te / length(te_groups);
+end
+
+function layers = build_arch(d_in, arch_id)
+    % BUILD_ARCH Constrói o vetor de dimensões das camadas para as 3 arquiteturas.
+    %   A: Reference -> 1 camada escondida com N=10 neurónios
+    %   B: Wide      -> 1 camada escondida com N=100 neurónios
+    %   C: Deep      -> 10 camadas escondidas com N=10 neurónios cada
+    %  Entradas:
+    %      d_in    - Número de entradas (features)
+    %      arch_id - 'A', 'B' ou 'C'
+    % Saidas:
+    %      layers  - Vetor com o número de neurónios em cada camada (incluindo entrada e saída)
+    N = 10;
+    switch upper(arch_id)
+        case 'A'
+            layers = [d_in, N, 1];
+        case 'B'
+            layers = [d_in, 10 * N, 1];
+        case 'C'
+            layers = [d_in, repmat(N, 1, 10), 1];
+        otherwise
+            error('Arquitetura inválida. Escolha A, B ou C.');
+    end
+end
+
+function theta = init_params(layers, seed)
+    % INIT_PARAMS Inicializa pesos e biases num vetor coluna theta usando Glorot/Xavier.
+    %  Entradas:
+    %      layers - Vetor com o número de neurónios em cada camada
+    %      seed   - Semente para reprodutibilidade
+    % Saídas:
+    %      theta  - Vetor coluna com todos os pesos e biases concatenados
+    rand('state', seed);
+    randn('state', seed);
+
+    num_layers = length(layers) - 1;
+    total_params = 0;
+    for l = 1:num_layers
+        total_params = total_params + layers(l) * layers(l+1) + layers(l+1);
+    end
+
+    theta = zeros(total_params, 1);
+    idx = 1;
+    for l = 1:num_layers
+        n_in  = layers(l);
+        n_out = layers(l+1);
+
+        % Inicialização Glorot/Xavier uniforme: U[-limit, limit]
+        limit = sqrt(6.0 / (n_in + n_out));
+        W = (2.0 * rand(n_in, n_out) - 1.0) * limit;
+        b = zeros(1, n_out);
+
+        n_w = n_in * n_out;
+        theta(idx : idx + n_w - 1) = W(:);
+        idx = idx + n_w;
+
+        theta(idx : idx + n_out - 1) = b(:);
+        idx = idx + n_out;
+    end
+end
+
+function [W_cell, b_cell] = unpack_params(theta, layers)
+    % UNPACK_PARAMS Desempacota o vetor theta nas matrizes W{l} e vetores b{l}.
+    % Entradas:
+    %   theta  - Vetor coluna com todos os pesos e biases concatenados
+    %   layers - Vetor com o número de neurónios em cada camada
+    % Saídas:
+    %   W_cell - Cell array com matrizes de pesos para cada camada
+    %   b_cell - Cell array com vetores de bias para cada camada
+    num_layers = length(layers) - 1;
+    W_cell = cell(num_layers, 1);
+    b_cell = cell(num_layers, 1);
+
+    idx = 1;
+    for l = 1:num_layers
+        n_in  = layers(l);
+        n_out = layers(l+1);
+
+        n_w = n_in * n_out;
+        W_cell{l} = reshape(theta(idx : idx + n_w - 1), n_in, n_out);
+        idx = idx + n_w;
+
+        b_cell{l} = reshape(theta(idx : idx + n_out - 1), 1, n_out);
+        idx = idx + n_out;
+    end
+end
+
+function [y_hat, cache] = forward_pass(theta, layers, X)
+    % FORWARD_PASS Executa a propagação direta (tanh nas camadas escondidas, linear na saída).
+    % Entradas:
+    %   theta  - Vetor coluna com todos os pesos e biases concatenados
+    %   layers - Vetor com o número de neurónios em cada camada
+    %   X      - Matriz de entradas
+    % Saídas:
+    %   y_hat  - Saída da rede 
+    %  cache  - Estrutura com ativações e pesos para uso no backpropagation
+    [W_cell, b_cell] = unpack_params(theta, layers);
+    num_layers = length(layers) - 1;
+    N = size(X, 1);
+
+    A = cell(num_layers + 1, 1);
+    A{1} = X;
+
+    for l = 1:num_layers
+        Z = A{l} * W_cell{l} + repmat(b_cell{l}, N, 1);
+        if l < num_layers
+            A{l+1} = tanh(Z);
+        else
+            A{l+1} = Z; % Saída linear
+        end
+    end
+
+    y_hat = A{end};
+    cache.A = A;
+    cache.W = W_cell;
+end
+
+function [loss, grad] = loss_grad(theta, layers, X, y)
+    % LOSS_GRAD Calcula o MSE = (1/N)*sum((y_hat - y)^2) e o gradiente analítico exato.
+    % Entradas:
+    %   theta  - Vetor coluna com todos os pesos e biases concatenados
+    %   layers - Vetor com o número de neurónios em cada camada
+    %   X      - Matriz de entradas
+    %   y      - Vetor alvo
+    % Saídas:
+    %   loss   - Valor do MSE
+    %   grad   - Vetor coluna com o gradiente do MSE em relação a theta
+    N = size(X, 1);
+    [y_hat, cache] = forward_pass(theta, layers, X);
+
+    diff = y_hat - y;
+    loss = mean(diff .^ 2);
+
+    num_layers = length(layers) - 1;
+    grad = zeros(size(theta));
+
+    % Derivada do MSE em relação à saída linear: dL/dZ_L = (2/N)*(y_hat - y)
+    delta = (2.0 / N) * diff;
+
+    % Ponteiro para preencher grad de trás para a frente
+    idx_end = length(theta);
+
+    for l = num_layers:-1:1
+        A_prev = cache.A{l};
+        W_curr = cache.W{l};
+
+        dW = A_prev' * delta;
+        db = sum(delta, 1);
+
+        n_b = length(db);
+        n_w = numel(dW);
+
+        grad(idx_end - n_b + 1 : idx_end) = db(:);
+        idx_end = idx_end - n_b;
+
+        grad(idx_end - n_w + 1 : idx_end) = dW(:);
+        idx_end = idx_end - n_w;
+
+        if l > 1
+            % Derivada de tanh(Z): 1 - A{l}^2
+            delta = (delta * W_curr') .* (1.0 - cache.A{l} .^ 2);
+        end
+    end
+end
+
+function max_rel_err = check_gradient(layers, X, y, seed)
+    % CHECK_GRADIENT Verifica o gradiente analítico contra diferenças finitas centradas.
+    %   Devolve o erro relativo máximo: |g_ana - g_num| / max(|g_ana| + |g_num|, eps).
+    % Entradas:
+    %   layers - Vetor com o número de neurónios em cada camada
+    %   X      - Matriz de entradas
+    %   y      - Vetor alvo
+    %   seed   - Semente para inicialização
+    % Saidas:   
+    %   max_rel_err - Erro relativo máximo entre gradiente analítico e numérico
+    theta = init_params(layers, seed);
+    [~, g_ana] = loss_grad(theta, layers, X, y);
+
+    eps_fd = 1e-6;
+    n_params = length(theta);
+    g_num = zeros(n_params, 1);
+
+    for i = 1:n_params
+        theta_plus  = theta;
+        theta_minus = theta;
+        theta_plus(i)  = theta_plus(i)  + eps_fd;
+        theta_minus(i) = theta_minus(i) - eps_fd;
+
+        [L_plus, ~]  = loss_grad(theta_plus, layers, X, y);
+        [L_minus, ~] = loss_grad(theta_minus, layers, X, y);
+
+        g_num(i) = (L_plus - L_minus) / (2.0 * eps_fd);
+    end
+
+    denom = max(abs(g_ana) + abs(g_num), 1e-12);
+    rel_errors = abs(g_ana - g_num) ./ denom;
+    max_rel_err = max(rel_errors);
+end
+
+
+% ALGORITMO 1: MINI-BATCH GRADIENT DESCENT
+function [best_theta, hist] = train_gd(theta0, layers, Xtr, ytr, Xva, yva, opts)
+    % TRAIN_GD Treina a rede com Mini-batch Gradient Descent e seleção pelo menor loss de validação.
+    % Entradas:
+    %   theta0 - Vetor coluna inicial de pesos e biases
+    %   layers - Vetor com o número de neurónios em cada camada
+    %   Xtr    - Matriz de treino
+    %   ytr    - Vetor alvo de treino
+    %   Xva    - Matriz de validação
+    %   yva    - Vetor alvo de validação
+    %   opts   - Estrutura com opções: batch_size, lr, max_epochs, seed
+    % Saídas:
+    %   best_theta - Vetor coluna com os pesos e biases que obtiveram o menor loss de validação
+    %   hist       - Estrutura com histórico de perdas, épocas e tempo decorrido
+    t_start = tic;
+    theta = theta0;
+    N = size(Xtr, 1);
+    B = opts.batch_size;
+    lr = opts.lr;
+    max_epochs = opts.max_epochs;
+
+    rand('state', opts.seed + 1000);
+
+    tr_loss = zeros(max_epochs, 1);
+    va_loss = zeros(max_epochs, 1);
+    epoch_eq = (1:max_epochs)';
+
+    best_va_loss = inf;
+    best_theta = theta;
+
+    for ep = 1:max_epochs
+        perm = randperm(N);
+        for start_idx = 1:B:N
+            end_idx = min(start_idx + B - 1, N);
+            batch_idx = perm(start_idx:end_idx);
+
+            [~, g] = loss_grad(theta, layers, Xtr(batch_idx, :), ytr(batch_idx));
+            theta = theta - lr * g;
+        end
+
+        % Avalia perda no treino completo e na validação no final da época
+        y_tr_hat = forward_pass(theta, layers, Xtr);
+        y_va_hat = forward_pass(theta, layers, Xva);
+
+        tr_loss(ep) = mean((y_tr_hat - ytr) .^ 2);
+        va_loss(ep) = mean((y_va_hat - yva) .^ 2);
+
+        if va_loss(ep) < best_va_loss
+            best_va_loss = va_loss(ep);
+            best_theta = theta;
+        end
+    end
+
+    hist.tr_loss      = tr_loss;
+    hist.va_loss      = va_loss;
+    hist.epoch_eq     = epoch_eq;
+    hist.best_va_loss = best_va_loss;
+    hist.grad_evals   = max_epochs;
+    hist.elapsed_time = toc(t_start);
+end
+
+% ALGORITMO 2: BFGS (QUASI-NEWTON COM STRONG WOLFE LINE SEARCH)
+function [best_theta, hist] = train_bfgs(theta0, layers, Xtr, ytr, Xva, yva, opts)
+% TRAIN_BFGS Treina a rede com método Quasi-Newton BFGS em full-batch.
+%   Contabiliza cada avaliação de gradiente completo como 1 epoch-equivalent.
+    t_start = tic;
+    theta = theta0;
+    n_params = length(theta);
+    H = eye(n_params); % Aproximação inicial da inversa da Hessiana
+
+    max_evals = opts.max_epochs; % Orçamento em epoch-equivalents
+    gtol = opts.gtol;
+
+    [f, g] = loss_grad(theta, layers, Xtr, ytr);
+    evals = 1;
+
+    tr_loss  = [];
+    va_loss  = [];
+    epoch_eq = [];
+
+    y_va_hat = forward_pass(theta, layers, Xva);
+    va_curr = mean((y_va_hat - yva) .^ 2);
+
+    best_va_loss = va_curr;
+    best_theta = theta;
+
+    tr_loss(end+1, 1)  = f;
+    va_loss(end+1, 1)  = va_curr;
+    epoch_eq(end+1, 1) = evals;
+
+    while evals < max_evals
+        if norm(g, inf) <= gtol
+            break;
+        end
+
+        % Direção de descida Quasi-Newton
+        p = -H * g;
+        dg = dot(p, g);
+        if dg >= 0
+            % Reinicia H se perder propriedade de descida
+            H = eye(n_params);
+            p = -g;
+        end
+
+        % Line search com condições de Wolfe / Backtracking seguro
+        [alpha, f_new, g_new, ls_evals] = line_search_wolfe(theta, p, f, g, layers, Xtr, ytr, max_evals - evals);
+        evals = evals + ls_evals;
+
+        s = alpha * p;
+        y_vec = g_new - g;
+        ys = dot(s, y_vec);
+
+        theta = theta + s;
+
+        % Atualização BFGS da inversa da Hessiana (com proteção de curvatura)
+        if ys > 1e-14
+            rho = 1.0 / ys;
+            Hy = H * y_vec;
+            yHy = dot(y_vec, Hy);
+            H = H + (rho + rho^2 * yHy) * (s * s') - rho * (Hy * s' + s * Hy');
+        end
+
+        f = f_new;
+        g = g_new;
+
+        y_va_hat = forward_pass(theta, layers, Xva);
+        va_curr = mean((y_va_hat - yva) .^ 2);
+
+        tr_loss(end+1, 1)  = f;
+        va_loss(end+1, 1)  = va_curr;
+        epoch_eq(end+1, 1) = evals;
+
+        if va_curr < best_va_loss
+            best_va_loss = va_curr;
+            best_theta = theta;
+        end
+
+        if norm(s) < 1e-12
+            break;
+        end
+    end
+
+    hist.tr_loss      = tr_loss;
+    hist.va_loss      = va_loss;
+    hist.epoch_eq     = epoch_eq;
+    hist.best_va_loss = best_va_loss;
+    hist.grad_evals   = evals;
+    hist.elapsed_time = toc(t_start);
+end
+
+function [alpha, f_new, g_new, evals] = line_search_wolfe(theta, p, f0, g0, layers, X, y, rem_evals)
+% LINE_SEARCH_WOLFE Pesquisa linear satisfazendo Armijo e curvatura fraca/forte.
+    c1 = 1e-4;
+    c2 = 0.9;
+    alpha = 1.0;
+    alpha_low = 0.0;
+    alpha_high = inf;
+    dg0 = dot(p, g0);
+    evals = 0;
+
+    f_new = f0;
+    g_new = g0;
+
+    max_ls = min(15, max(1, rem_evals));
+
+    for k = 1:max_ls
+        theta_try = theta + alpha * p;
+        [f_try, g_try] = loss_grad(theta_try, layers, X, y);
+        evals = evals + 1;
+        f_new = f_try;
+        g_new = g_try;
+
+        dg_try = dot(p, g_try);
+
+        if (f_try > f0 + c1 * alpha * dg0) || (k > 1 && f_try >= f_prev)
+            alpha_high = alpha;
+            alpha = 0.5 * (alpha_low + alpha_high);
+        else
+            if abs(dg_try) <= -c2 * dg0
+                return;
+            end
+            if dg_try >= 0
+                alpha_high = alpha;
+            else
+                alpha_low = alpha;
+            end
+            if isinf(alpha_high)
+                alpha = 2.0 * alpha;
+            else
+                alpha = 0.5 * (alpha_low + alpha_high);
+            end
+        end
+        f_prev = f_try;
+    end
+end
+
+% -------------------------------------------------------------------------
+% ALGORITMO 3: ADAM
+% -------------------------------------------------------------------------
+function [best_theta, hist] = train_adam(theta0, layers, Xtr, ytr, Xva, yva, opts)
+% TRAIN_ADAM Treina a rede com otimizador Adam (beta1=0.9, beta2=0.999, eps=1e-8).
+    t_start = tic;
+    theta = theta0;
+    N = size(Xtr, 1);
+    B = opts.batch_size;
+    lr = opts.lr;
+    max_epochs = opts.max_epochs;
+
+    beta1 = 0.9;
+    beta2 = 0.999;
+    eps_adam = 1e-8;
+
+    m = zeros(size(theta));
+    v = zeros(size(theta));
+    t_step = 0;
+
+    rand('state', opts.seed + 1000);
+
+    tr_loss = zeros(max_epochs, 1);
+    va_loss = zeros(max_epochs, 1);
+    epoch_eq = (1:max_epochs)';
+
+    best_va_loss = inf;
+    best_theta = theta;
+
+    for ep = 1:max_epochs
+        perm = randperm(N);
+        for start_idx = 1:B:N
+            end_idx = min(start_idx + B - 1, N);
+            batch_idx = perm(start_idx:end_idx);
+
+            t_step = t_step + 1;
+            [~, g] = loss_grad(theta, layers, Xtr(batch_idx, :), ytr(batch_idx));
+
+            m = beta1 * m + (1.0 - beta1) * g;
+            v = beta2 * v + (1.0 - beta2) * (g .^ 2);
+
+            m_hat = m / (1.0 - beta1 ^ t_step);
+            v_hat = v / (1.0 - beta2 ^ t_step);
+
+            theta = theta - lr * m_hat ./ (sqrt(v_hat) + eps_adam);
+        end
+
+        y_tr_hat = forward_pass(theta, layers, Xtr);
+        y_va_hat = forward_pass(theta, layers, Xva);
+
+        tr_loss(ep) = mean((y_tr_hat - ytr) .^ 2);
+        va_loss(ep) = mean((y_va_hat - yva) .^ 2);
+
+        if va_loss(ep) < best_va_loss
+            best_va_loss = va_loss(ep);
+            best_theta = theta;
+        end
+    end
+
+    hist.tr_loss      = tr_loss;
+    hist.va_loss      = va_loss;
+    hist.epoch_eq     = epoch_eq;
+    hist.best_va_loss = best_va_loss;
+    hist.grad_evals   = max_epochs;
+    hist.elapsed_time = toc(t_start);
 end

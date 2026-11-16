@@ -92,3 +92,19 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
     fprintf('  Treino   : %s a %s\n', dates_melb_fe{melb_data.idx_tr(1)}, dates_melb_fe{melb_data.idx_tr(end)});
     fprintf('  Validação: %s a %s\n', dates_melb_fe{melb_data.idx_va(1)}, dates_melb_fe{melb_data.idx_va(end)});
     fprintf('  Teste    : %s a %s\n\n', dates_melb_fe{melb_data.idx_te(1)}, dates_melb_fe{melb_data.idx_te(end)});
+
+% STEP 5: Verificação da Implementação (Gradiente Analítico vs Numérico)
+    fprintf('A iniciar Step 5: Verificação de gradientes por diferenças finitas...\n');
+
+    arch_ids = {'A', 'B', 'C'};
+    X_check = conc_data.X_tr(1:20, :);
+    y_check = conc_data.y_tr(1:20);
+    d_conc  = size(X_check, 2);
+
+    for a = 1:length(arch_ids)
+        layers_tmp = L.build_arch(d_conc, arch_ids{a});
+        n_params   = length(L.init_params(layers_tmp, seed_global));
+        rel_err    = L.check_gradient(layers_tmp, X_check, y_check, seed_global);
+        fprintf('  Arquitetura %s (%4d parâmetros) -> Erro relativo máximo: %.3e\n', arch_ids{a}, n_params, rel_err);
+    end
+    fprintf('\n');

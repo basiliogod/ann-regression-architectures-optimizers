@@ -194,6 +194,40 @@ z = \frac{x - \mu_{\text{treino}}}{\sigma_{\text{treino}}}
 Para evitar rigorosamente \textit{data leakage}, os parâmetros $\mu_{\text{treino}}$ e $\sigma_{\text{treino}}$ foram calculados exclusivamente sobre o subconjunto de treino após a partição dos dados, sendo posteriormente aplicados aos subconjuntos de validação e de teste. Para o cálculo das métricas finais de desempenho (MSE, RMSE e MAE), as previsões da rede são revertidas para as unidades físicas originais através da transformação inversa $\hat{y} = \hat{z} \cdot \sigma_{\text{treino}} + \mu_{\text{treino}}$.
 
 \subsection{Particionamento dos Dados}
+
+Ambos os conjuntos de dados foram divididos em subconjuntos de treino ($70\%$), validação ($15\%$) e teste ($15\%$). De modo a garantir que toda a variabilidade observada entre as $30$ repetições finais decorra exclusivamente da inicialização aleatória dos pesos e da ordenação dos \textit{mini-batches}, as partições foram mantidas rigorosamente fixas durante todo o estudo, recorrendo à \textit{seed} fixa $42$). A Tabela~\ref{tab:splits} sintetiza a dimensão e cobertura de cada partição.
+
+\begin{table}[H]
+\caption{Resumo da partição dos conjuntos de dados.}
+\label{tab:splits}
+\begin{center}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Estratégia} & \textbf{Treino} & \textbf{Validação} & \textbf{Teste} \\
+\midrule
+\textit{Concrete} & Aleatória & $721$ & $155$ & $154$ \\
+\textit{Melbourne} & Cronológica & $2\,550$ & $546$ & $547$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{Partição Cronológica - Melbourne}
+Para a série temporal de Melbourne ($3\,643$ amostras após a construção das janelas com $p=7$), adotou-se uma divisão estritamente cronológica em blocos :
+\begin{itemize}
+    \item \textbf{Treino ($70\%$, $2\,550$ amostras):} 8 de janeiro de 1981 a 2 de janeiro de 1988;
+    \item \textbf{Validação ($15\%$, $546$ amostras):} 3 de janeiro de 1988 a 2 de julho de 1989;
+    \item \textbf{Teste ($15\%$, $547$ amostras):} 3 de julho de 1989 a 31 de dezembro de 1990.
+\end{itemize}
+Esta estratégia preserva a ordem causal dos acontecimentos e impede qualquer fuga de informação futura (\textit{data leakage}) para o conjunto de treino, para as estatísticas do normalizador (\textit{scaler}) ou para as janelas desfasadas, simulando um cenário realista de previsão operacional.
+
+\subsubsection{Partição Aleatória e Discussão - Concrete}
+No conjunto de dados \textit{Concrete} ($1\,030$ observações), aplicou-se uma partição aleatória uniforme em $721$ amostras de treino, $155$ de validação e $154$ de teste.
+
+Contudo, uma análise estrutural das $8$ variáveis de entrada revela uma limitação metodológica importante neste tipo de partição. Embora existam $1\,030$ registos, a inspeção das combinações dos $7$ ingredientes químicos e físicos (excluindo a idade de cura) mostra que existem apenas $428$ receitas distintas de betão - ou seja, a mesma formulação foi ensaiada em laboratório múltiplas vezes em diferentes idades (por exemplo, aos $3$, $7$, $28$ e $90\text{ dias}$). Com a divisão puramente aleatória por linha, verificou-se que $88$ das receitas presentes no conjunto de teste ($68{,}8\%$ das formulações do teste) também ocorrem no conjunto de treino noutras idades de cura.
+
+Consequentemente, esta partição aleatória é adequada apenas se o objetivo prático for estimar a evolução temporal da resistência de formulações de betão já parcialmente conhecidas pelo modelo (\textit{interpolação na curva de cura}). Pelo contrário, se o objetivo de engenharia for prever a resistência de uma \textit{nova formulação química nunca antes testada}, a divisão aleatória introduz (\textit{group leakage}), levando a uma estimativa otimista do erro de generalização.
+
 \subsection{Implementação e Verificação}
 \subsection{Ajuste de hiperparamêtros}
 \subsection{Experimentos Finais}

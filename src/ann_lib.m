@@ -14,6 +14,9 @@ function L = ann_lib()
     L.fit_scaler          = @fit_scaler;
     L.transform_data      = @transform_data;
     L.inverse_transform_y = @inverse_transform_y;
+
+    L.split_data               = @split_data;
+    L.analyze_concrete_mixtures = @analyze_concrete_mixtures;
 end
 
 function [X, y, var_names] = load_concrete(filepath)
@@ -521,4 +524,84 @@ function y_orig = inverse_transform_y(y_scaled, scaler)
     %  Saídas:
     %      y_orig - Vetor alvo em unidades originais
     y_orig = y_scaled .* scaler.y_std + scaler.y_mean;
+end
+
+function splits = split_data(X, y, ratios, mode, seed)
+    % SPLIT_DATA Divide os dados em treino, validação e teste (ex: 70/15/15)
+    % e aplica o scaler ajustado exclusivamente no conjunto de treino.
+    %   Entradas:
+    %       X      - Matriz de entradas
+    %       y      - Vetor alvo
+    %       ratios - Vetor [r_tr, r_va, r_te] (ex: [0.70, 0.15, 0.15])
+    %       mode   - 'random' (Concrete) ou 'chronological' (Melbourne)
+    %       seed   - Semente fixa para garantir reprodutibilidade no split aleatório
+    %   Saídas:
+    %       splits - Estrutura contendo dados originais, escalados, índices e scaler
+
+    N = size(X, 1);
+    n_tr = round(ratios(1) * N);
+    n_va = round(ratios(2) * N);
+    n_te = N - n_tr - n_va;
+
+    if strcmpi(mode, 'random')
+        rand('state', seed);
+        idx = randperm(N);
+    elseif strcmpi(mode, 'chronological')
+        idx = 1:N;
+    else
+        error('Modo de partição inválido. Use "random" ou "chronological".');
+    end
+
+    idx_tr = idx(1:n_tr);
+    idx_va = idx(n_tr+1 : n_tr+n_va);
+    idx_te = idx(n_tr+n_va+1 : end);
+
+    % Subconjuntos nas unidades originais
+    splits.X_tr_raw = X(idx_tr, :);
+    splits.y_tr_raw = y(idx_tr);
+    splits.X_va_raw = X(idx_va, :);
+    splits.y_va_raw = y(idx_va);
+    splits.X_te_raw = X(idx_te, :);
+    splits.y_te_raw = y(idx_te);
+
+    splits.idx_tr = idx_tr;
+    splits.idx_va = idx_va;
+    splits.idx_te = idx_te;
+
+    % Ajusta o scaler APENAS no conjunto de treino
+    splits.scaler = fit_scaler(splits.X_tr_raw, splits.y_tr_raw);
+
+    % Transforma treino, validação e teste com as estatísticas do treino
+    [splits.X_tr, splits.y_tr] = transform_data(splits.X_tr_raw, splits.y_tr_raw, splits.scaler);
+    [splits.X_va, splits.y_va] = transform_data(splits.X_va_raw, splits.y_va_raw, splits.scaler);
+    [splits.X_te, splits.y_te] = transform_data(splits.X_te_raw, splits.y_te_raw, splits.scaler);
+end
+
+function mix_info = analyze_concrete_mixtures(X_raw, idx_tr, idx_va, idx_te)
+    % ANALYZE_CONCRETE_MIXTURES Analisa quantas misturas únicas existem no Concrete e quantas partilham observações entre treino, validação e teste.
+    %  Entradas:
+    %    X_raw  - Matriz original de entradas
+    %    idx_tr - Índices das observações de treino
+    %    idx_va - Índices das observações de validação
+    %    idx_te - Índices das observações de teste
+    % Saídas:
+    %    mix_info - Estrutura com informações sobre misturas únicas e sobreposição entre conjuntos
+
+    % Colunas 1 a 7 definem a receita química/física (sem a idade de cura)
+    recipes = X_raw(:, 1:7);
+    [unique_recipes, ~, group_ids] = unique(recipes, 'rows');
+    n_unique = size(unique_recipes, 1);
+
+    tr_groups = unique(group_ids(idx_tr));
+    va_groups = unique(group_ids(idx_va));
+    te_groups = unique(group_ids(idx_te));
+
+    overlap_tr_va = length(intersect(tr_groups, va_groups));
+    overlap_tr_te = length(intersect(tr_groups, te_groups));
+
+    mix_info.total_obs       = size(X_raw, 1);
+    mix_info.unique_mixtures = n_unique;
+    mix_info.overlap_tr_va   = overlap_tr_va;
+    mix_info.overlap_tr_te   = overlap_tr_te;
+    mix_info.pct_te_in_tr    = 100 * overlap_tr_te / length(te_groups);
 end

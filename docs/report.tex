@@ -93,6 +93,79 @@ O segundo conjunto de dados, \textit{Daily Minimum Temperatures in Melbourne} \c
 Na inspeção inicial de ambos os ficheiros, verificou-se a integridade estrutural dos registos e a necessidade de assegurar portabilidade nativa entre os ambientes MATLAB e GNU Octave sem depender de pacotes externos de leitura de folhas de cálculo \cite{b1}. Para esse efeito, o ficheiro original do conjunto de dados \textit{Concrete} (disponibilizado no formato \texttt{.xls}) foi previamente convertido para o formato \texttt{.csv}, preservando a precisão numérica das suas $1\,030$ linhas e $9$ colunas \cite{b1, b2}. Por sua vez, no conjunto de dados de Melbourne (já disponibilizado em \texttt{.csv}), a inspeção preliminar revelou a existência de registos com formatação textual anómala (como pontos de interrogação junto a alguns valores numéricos) que exigem limpeza durante a etapa de pré-processamento \cite{b1, b4}.
 
 \subsection{Análise Exploratória dos Dados}
+Antes de qualquer transformação, realizou-se uma análise estatística e gráfica detalhada de ambos os conjuntos de dados para identificar padrões, assimetrias, relações não lineares e possíveis anomalias.
+
+\subsubsection{Conjunto de Dados Concrete}
+A Tabela~\ref{tab:stats_concrete} apresenta o resumo estatístico das nove variáveis do conjunto de dados \textit{Concrete}. Observa-se que a variável alvo (\textit{Compressive Strength}) apresenta uma distribuição aproximadamente simétrica (média de $35{,}82\text{ MPa}$ e mediana de $34{,}45\text{ MPa}$), variando entre $2{,}33\text{ MPa}$ e $82{,}60\text{ MPa}$. Em contraste, diversas variáveis de entrada exibem forte assimetria positiva e elevada concentração de valores nulos: mais de metade das amostras não contém \textit{Fly Ash} (mediana de $0{,}00\text{ kg/m}^3$), enquanto \textit{Blast Furnace Slag} e \textit{Superplasticizer} também apresentam um grande volume de misturas com concentração zero (Fig.~\ref{fig:eda_conc_hist}). A variável \textit{Age} destaca-se por ser discreta e fortemente enviesada à direita (mediana de $28\text{ dias}$ contra uma média de $45{,}66\text{ dias}$ e máximo de $365\text{ dias}$).
+
+\begin{table}[H]
+\caption{Resumo estatístico do conjunto de dados \textit{Concrete} ($N = 1\,030$).}
+\label{tab:stats_concrete}
+\begin{center}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Variável} & \textbf{Mín.} & \textbf{Mediana} & \textbf{Média} & \textbf{Std} & \textbf{Máx.} \\
+\midrule
+\textit{Cement} & $102{,}00$ & $272{,}90$ & $281{,}17$ & $104{,}51$ & $540{,}00$ \\
+\textit{Slag} & $0{,}00$ & $22{,}00$ & $73{,}90$ & $86{,}28$ & $359{,}40$ \\
+\textit{Fly Ash} & $0{,}00$ & $0{,}00$ & $54{,}19$ & $64{,}00$ & $200{,}10$ \\
+\textit{Water} & $121{,}75$ & $185{,}00$ & $181{,}57$ & $21{,}36$ & $247{,}00$ \\
+\textit{Superplast.} & $0{,}00$ & $6{,}35$ & $6{,}20$ & $5{,}97$ & $32{,}20$ \\
+\textit{Coarse Agg.} & $801{,}00$ & $968{,}00$ & $972{,}92$ & $77{,}75$ & $1145{,}00$ \\
+\textit{Fine Agg.} & $594{,}00$ & $779{,}51$ & $773{,}58$ & $80{,}18$ & $992{,}60$ \\
+\textit{Age} & $1{,}00$ & $28{,}00$ & $45{,}66$ & $63{,}17$ & $365{,}00$ \\
+\textit{Strength} & $2{,}33$ & $34{,}45$ & $35{,}82$ & $16{,}71$ & $82{,}60$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{eda_concrete_histograms.png}
+\caption{Distribuição das variáveis de entrada e alvo.}
+\label{fig:eda_conc_hist}
+\end{figure}
+
+A análise da matriz de correlação de Pearson (Fig.~\ref{fig:eda_conc_corr}) e dos diagramas de dispersão contra a resistência à compressão (Fig.~\ref{fig:eda_conc_scatter}) evidencia que nenhuma variável isolada explica linearmente o alvo. As correlações lineares mais expressivas com a resistência ocorrem com \textit{Cement} ($r = +0{,}50$), \textit{Superplasticizer} ($r = +0{,}37$), \textit{Age} ($r = +0{,}33$) e \textit{Water} ($r = -0{,}29$). Destaca-se ainda a forte correlação negativa entre \textit{Water} e \textit{Superplasticizer} ($r = -0{,}66$), refletindo o papel químico do superplastificante na redução da quantidade de água necessária na mistura. Os gráficos de dispersão (Fig.~\ref{fig:eda_conc_scatter}) confirmam relações altamente não lineares como o crescimento logarítmico da resistência com a idade de cura (\textit{Age}), justificando o uso de redes neuronais não lineares.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{eda_concrete_corr.png}
+\caption{Matriz de correlação de Pearson entre todas as variáveis do conjunto de dados \textit{Concrete}.}
+\label{fig:eda_conc_corr}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{eda_concrete_scatter.png}
+\caption{Diagramas de dispersão e coeficiente de correlação linear ($r$) de cada variável de entrada em relação à resistência à compressão (\textit{Strength}).}
+\label{fig:eda_conc_scatter}
+\end{figure}
+
+\subsubsection{Conjunto de Dados Melbourne}
+A série temporal de temperaturas mínimas diárias em Melbourne ($N = 3\,650$) apresenta uma média de $11{,}18^{\circ}\text{C}$ (mediana de $11{,}00^{\circ}\text{C}$) e desvio padrão de $4{,}07^{\circ}\text{C}$, oscilando entre o mínimo de $0{,}00^{\circ}\text{C}$ e o máximo de $26{,}30^{\circ}\text{C}$, com uma distribuição unimodal ligeiramente assimétrica à direita (Fig.~\ref{fig:eda_melb_series}).
+
+A inspeção visual da série completa, do comportamento mensal e do ciclo anual médio (Fig.~\ref{fig:eda_melb_series}) revela uma sazonalidade anual muito pronunciada típica do hemisfério sul: os meses mais quentes ocorrem no verão (janeiro e fevereiro, com médias em torno de $15{,}0\text{--}15{,}4^{\circ}\text{C}$), enquanto os meses mais frios concentram-se no inverno (junho e julho, com médias entre $6{,}7$ e $7{,}3^{\circ}\text{C}$). Sobreposta a esta onda sazonal suave existe uma elevada variabilidade diária.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{eda_melbourne_series.png}
+\caption{Análise exploratória temporal de Melbourne: série completa ($1981\text{--}1990$), histograma de distribuição, perfil sazonal mensal e ciclo anual médio}
+\label{fig:eda_melb_series}
+\end{figure}
+
+A Função de Autocorrelação (ACF), implementada de raiz até ao desfasamento (\textit{lag}) de $400\text{ dias}$ (Fig.~\ref{fig:eda_melb_acf}), confirma tanto a inércia de curto prazo como a periodicidade anual. A autocorrelação decai rapidamente nos primeiros dias (de $r = 0{,}775$ no \textit{lag} 1 para cerca de $0{,}58$ nos primeiros desfasamentos seguintes), atinge o mínimo negativo próximo do meio ciclo anual ($\text{lag} \approx 182\text{ dias}$, $r \approx -0{,}50$) e volta a atingir um pico positivo significativo em $\text{lag} \approx 365\text{ dias}$ ($r \approx +0{,}50$). O gráfico de dispersão entre $T(t)$ e $T(t+1)$ evidencia uma forte dependência linear de curto prazo ($r = 0{,}775$), mas com dispersão considerável causada pelo ruído meteorológico diário.
+
+Por fim, a verificação de anomalias e mudanças abruptas (Fig.~\ref{fig:eda_melb_acf}, direita) mostrou que apenas $2$ registos apresentam o valor limite de $0{,}0^{\circ}\text{C}$ (plausíveis no inverno de Melbourne) e que as variações absolutas consecutivas $|T(t+1)-T(t)|$ ultrapassam os $10^{\circ}\text{C}$ em apenas $4$ ocasiões ao longo dos $10$ anos, sendo o salto máximo de $12{,}70^{\circ}\text{C}$ (entre 26 e 27 de novembro de 1984). Não foram identificadas quebras estruturais permanentes na média ou variância da série ao longo da década analisada.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{eda_melbourne_acf_scatter.png}
+\caption{Função de Autocorrelação (ACF), diagrama de dispersão $T(t)$ contra $T(t+1)$ e magnitude dos saltos térmicos diários $|T(t+1)-T(t)|$.}
+\label{fig:eda_melb_acf}
+\end{figure}
+
 \subsection{Pré-processamento e Feature Engineering}
 \subsection{Particionamento dos Dados}
 \subsection{Implementação e Verificação}

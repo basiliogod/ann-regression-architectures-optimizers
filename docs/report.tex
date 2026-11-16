@@ -229,6 +229,76 @@ Contudo, uma análise estrutural das $8$ variáveis de entrada revela uma limita
 Consequentemente, esta partição aleatória é adequada apenas se o objetivo prático for estimar a evolução temporal da resistência de formulações de betão já parcialmente conhecidas pelo modelo (\textit{interpolação na curva de cura}). Pelo contrário, se o objetivo de engenharia for prever a resistência de uma \textit{nova formulação química nunca antes testada}, a divisão aleatória introduz (\textit{group leakage}), levando a uma estimativa otimista do erro de generalização.
 
 \subsection{Implementação e Verificação}
+
+Toda a biblioteca de redes neuronais e algoritmos de otimização foi desenvolvida de raiz em linguagem MATLAB compatível com GNU Octave, sem recurso a \textit{toolboxes} externas de aprendizagem automática. A estrutura modular do código obedece rigorosamente à arquitetura exigida: o ficheiro \texttt{ann\_lib.m} encapsula todas as rotinas internas e devolve uma estrutura de apontadores para funções, enquanto o script \texttt{main\_assignment2.m} orquestra a execução experimental.
+
+\subsubsection{Arquiteturas, Ativação e Inicialização}
+Foram implementadas três redes neuronais \textit{feed-forward} totalmente ligadas com um único neurónio de saída linear e função de custo de erro quadrático médio (MSE), partilhando uma base de $N = 10$ neurónios nas camadas escondidas:
+\begin{itemize}
+    \item \textbf{Arquitetura A (\textit{Reference}):} $1$ camada escondida com $10$ neurónios ($121$ parâmetros para $d=10$ no \textit{Concrete}; $111$ parâmetros para $d=9$ em \textit{Melbourne});
+    \item \textbf{Arquitetura B (\textit{Wide}):} $1$ camada escondida com $100$ neurónios ($1\,201$ parâmetros no \textit{Concrete}; $1\,101$ em \textit{Melbourne});
+    \item \textbf{Arquitetura C (\textit{Deep}):} $10$ camadas escondidas com $10$ neurónios cada ($1\,111$ parâmetros no \textit{Concrete}; $1\,101$ em \textit{Melbourne}).
+\end{itemize}
+
+Em todas as configurações utilizou-se a tangente hiperbólica ($\tanh$) como função de ativação das camadas escondidas, devido à sua simetria em torno da origem ($[-1, 1]$) e gradientes bem comportados para dados normalizados com média nula. Os pesos $\mathbf{W}^{(l)}$ de cada camada foram inicializados segundo o esquema uniforme de Glorot/Xavier, $\mathcal{U}\!\left[-\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}, \sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}\right]$, e os enviesamentos (\textit{biases}) $\mathbf{b}^{(l)}$ a zero, mantendo a variância das ativações estável ao longo das camadas. Para facilitar a integração com otimizadores vetoriais (como o BFGS), todos os parâmetros foram empacotados num único vetor coluna $\boldsymbol{\theta} \in \mathbb{R}^P$. O Listagem~\ref{lst:loss_grad} ilustra a implementação da retropropagação (\textit{backpropagation}) utilizada para o cálculo exato do custo e do gradiente.
+
+\begin{lstlisting}[caption={Excerto de \texttt{ann\_lib.m}: cálculo do MSE e retropropagação do gradiente.},label={lst:loss_grad}]
+function [loss, grad] = loss_grad(theta, layers, X, y)
+    N = size(X, 1);
+    [y_hat, cache] = forward_pass(theta, layers, X);
+    diff = y_hat - y;
+    loss = mean(diff .^ 2); % Erro Quadratico Medio
+
+    num_layers = length(layers) - 1;
+    grad = zeros(size(theta));
+
+    delta = (2.0 / N) * diff; % Derivada na saida linear
+
+    % Ponteiro para preencher grad de trás para a frente
+    idx_end = length(theta);
+    for l = num_layers:-1:1
+        A_prev = cache.A{l};
+        W_curr = cache.W{l};
+        dW = A_prev' * delta;
+        db = sum(delta, 1);
+        n_b = length(db);
+        n_w = numel(dW);
+
+        grad(idx_end - n_b + 1 : idx_end) = db(:);
+        idx_end = idx_end - n_b;
+        grad(idx_end - n_w + 1 : idx_end) = dW(:);
+        idx_end = idx_end - n_w;
+
+        if l > 1
+            delta = (delta * W_curr') .* (1.0 - cache.A{l} .^ 2);
+        end
+    end
+end
+\end{lstlisting}
+
+\subsubsection{Verificação Numérica dos Gradientes}
+Para validar a exatidão matemática da implementação analítica de \texttt{loss\_grad}, o gradiente analítico $\mathbf{g}_{\text{ana}}$ foi comparado contra uma aproximação numérica por diferenças finitas centradas:
+\begin{equation}
+g_{\text{num}, i} = \frac{\mathcal{L}(\boldsymbol{\theta} + \epsilon \mathbf{e}_i) - \mathcal{L}(\boldsymbol{\theta} - \epsilon \mathbf{e}_i)}{2\epsilon}, \quad \epsilon = 10^{-6}
+\end{equation}
+avaliada em todos os parâmetros $i \in \{1, \dots, P\}$ das três arquiteturas (com a seed fixa $42$ sobre um subconjunto de treino). Conforme apresentado na Tabela~\ref{tab:grad_check}, os erros relativos máximos situaram-se na ordem de $10^{-8}$ a $10^{-7}$, confirmando a precisão numérica da retropropagação em todas as configurações.
+
+\begin{table}[H]
+\caption{Verificação do gradiente analítico por diferenças finitas centradas nas três arquiteturas ($d = 10$).}
+\label{tab:grad_check}
+\begin{center}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{ID} & \textbf{Arquitetura} & \textbf{Parâmetros ($P$)} & \textbf{Erro Relativo Máx.} \\
+\midrule
+A & \textit{Reference} ($1 \times 10$) & $121$ & $1{,}083 \times 10^{-8}$ \\
+B & \textit{Wide} ($1 \times 100$) & $1\,201$ & $1{,}389 \times 10^{-7}$ \\
+C & \textit{Deep} ($10 \times 10$) & $1\,111$ & $3{,}437 \times 10^{-7}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
 \subsection{Ajuste de hiperparamêtros}
 \subsection{Experimentos Finais}
 

@@ -29,6 +29,15 @@ function L = ann_lib()
     L.train_adam      = @train_adam;
 
     L.tune_learning_rates = @tune_learning_rates;
+
+    L.compute_metrics       = @compute_metrics;
+    L.run_final_experiments = @run_final_experiments;
+
+    L.eval_baselines          = @eval_baselines;
+    L.print_summary_table     = @print_summary_table;
+    L.plot_training_progress  = @plot_training_progress;
+    L.plot_custom_boxplots    = @plot_custom_boxplots;
+    L.plot_predictions        = @plot_predictions;
 end
 
 function h = create_headless_fig(pos)
@@ -933,6 +942,10 @@ function [best_theta, hist] = train_bfgs(theta0, layers, Xtr, ytr, Xva, yva, opt
 
     max_evals = opts.max_epochs;
     gtol = opts.gtol;
+    stol = 1e-8;
+    ftol = 1e-9;
+    if isfield(opts, 'stol'), stol = opts.stol; end
+    if isfield(opts, 'ftol'), ftol = opts.ftol; end
 
     [f, g] = loss_grad(theta, layers, Xtr, ytr);
     evals = 1;
@@ -979,6 +992,7 @@ function [best_theta, hist] = train_bfgs(theta0, layers, Xtr, ytr, Xva, yva, opt
             H = H + (rho + rho^2 * yHy) * (s * s') - rho * (Hy * s' + s * Hy');
         end
 
+        delta_f = abs(f - f_new);
         f = f_new;
         g = g_new;
 
@@ -995,7 +1009,10 @@ function [best_theta, hist] = train_bfgs(theta0, layers, Xtr, ytr, Xva, yva, opt
             best_theta = theta;
         end
 
-        if norm(s) < 1e-12
+        % Critério de paragem antecipada no BFGS:
+        % - estagnação no passo: norm(s) < stol (passo minúsculo)
+        % - estagnação na função de perda: delta_f < ftol (após primeiras iterações)
+        if norm(s) < stol || (rec_idx > 5 && delta_f < ftol)
             break;
         end
     end
@@ -1281,4 +1298,512 @@ function tuning_res = tune_learning_rates(dataset_splits, dataset_name, lr_grid,
     fname = sprintf('tuning_%s.png', lower(dataset_name));
     print(h, fullfile(fig_dir, fname), '-dpng', '-r300');
     close(h);
+end
+
+function metrics = compute_metrics(y_true, y_pred)
+    % COMPUTE_METRICS Calcula MSE, RMSE, MAE e R^2 nas unidades originais do alvo.
+    %   Entradas:
+    %       y_true  - Vetor coluna com os valores reais observados
+    %       y_pred  - Vetor coluna com os valores previstos pelo modelo
+    %   Saídas:
+    %       metrics - Estrutura com campos .mse, .rmse, .mae e .r2
+
+    y_true = y_true(:);
+    y_pred = y_pred(:);
+    err    = y_true - y_pred;
+
+    metrics.mse  = mean(err .^ 2);
+    metrics.rmse = sqrt(metrics.mse);
+    metrics.mae  = mean(abs(err));
+
+    ss_res = sum(err .^ 2);
+    ss_tot = sum((y_true - mean(y_true)) .^ 2);
+    if ss_tot == 0
+        metrics.r2 = 0;
+    else
+        metrics.r2 = 1.0 - (ss_res / ss_tot);
+    end
+end
+
+function exp_res = run_final_experiments(dataset_splits, dataset_name, tuning_res, bfgs_opts, max_epochs, batch_size, n_runs)
+    % RUN_FINAL_EXPERIMENTS Executa todas as 9 combinações (3 arquiteturas x 3 algoritmos)
+    % para um dataset, repetidas n_runs vezes (seeds 1 a 30) de forma emparelhada.
+    %   Entradas:
+    %       dataset_splits - Estrutura com dados escalados e originais (treino, val, teste)
+    %       dataset_name   - Nome do dataset ('Concrete' ou 'Melbourne')
+    %       tuning_res     - Estrutura devolvida por tune_learning_rates com .best_lr
+    %       bfgs_opts      - Opções do BFGS (.gtol, .wolfe_c1, .wolfe_c2, .max_ls_evals)
+    %       max_epochs     - Orçamento máximo em epoch-equivalents
+    %       batch_size     - Tamanho do mini-batch (32)
+    %       n_runs         - Número de repetições (30)
+    %   Saídas:
+    %       exp_res        - Estrutura completa com históricos, métricas e melhores modelos
+
+    arch_ids  = {'A', 'B', 'C'};
+    alg_names = {'GD', 'BFGS', 'Adam'};
+    d_in      = size(dataset_splits.X_tr, 2);
+
+    exp_res.dataset_name = dataset_name;
+    exp_res.arch_ids     = arch_ids;
+    exp_res.alg_names    = alg_names;
+    exp_res.max_epochs   = max_epochs;
+    exp_res.n_runs       = n_runs;
+
+    % Matrizes de métricas no teste: (3 arquiteturas x 3 algoritmos x n_runs)
+    exp_res.test_mse   = zeros(3, 3, n_runs);
+    exp_res.test_rmse  = zeros(3, 3, n_runs);
+    exp_res.test_mae   = zeros(3, 3, n_runs);
+    exp_res.test_r2    = zeros(3, 3, n_runs);
+    exp_res.grad_evals = zeros(3, 3, n_runs);
+    exp_res.train_time = zeros(3, 3, n_runs);
+
+    % Históricos de treino/validação época a época: cell(3, 3, n_runs)
+    exp_res.histories   = cell(3, 3, n_runs);
+    exp_res.best_thetas = cell(3, 3, n_runs);
+
+    fprintf('================================================================================\n');
+    fprintf(' EXPERIÊNCIAS FINAIS: %s (3 Arqs x 3 Algs x %d runs | Orçamento = %d ep-eq)\n', ...
+            dataset_name, n_runs, max_epochs);
+    fprintf('================================================================================\n');
+    fflush(stdout);
+
+    for a = 1:3
+        layers = build_arch(d_in, arch_ids{a});
+        lr_gd   = tuning_res.best_lr(a, 1);
+        lr_adam = tuning_res.best_lr(a, 2);
+
+        fprintf('Arquitetura %s (%d parâmetros): a executar %d runs emparelhadas...\n', ...
+                arch_ids{a}, length(init_params(layers, 1)), n_runs);
+        fflush(stdout);
+
+        for k = 1:n_runs
+            % Regra comum (i): mesma inicialização para os 3 algoritmos na run k
+            theta0 = init_params(layers, k);
+
+            % --- 1. Mini-batch Gradient Descent ---
+            opts_gd.batch_size = batch_size;
+            opts_gd.lr         = lr_gd;
+            opts_gd.max_epochs = max_epochs;
+            opts_gd.seed       = k;
+            opts_gd.eval_every = 1;
+            opts_gd.eval_tr    = true;
+
+            [theta_gd, hist_gd] = train_gd(theta0, layers, ...
+                dataset_splits.X_tr, dataset_splits.y_tr, ...
+                dataset_splits.X_va, dataset_splits.y_va, opts_gd);
+
+            % --- 2. BFGS ---
+            opts_bf            = bfgs_opts;
+            opts_bf.max_epochs = max_epochs;
+
+            [theta_bf, hist_bf] = train_bfgs(theta0, layers, ...
+                dataset_splits.X_tr, dataset_splits.y_tr, ...
+                dataset_splits.X_va, dataset_splits.y_va, opts_bf);
+
+            % --- 3. Adam ---
+            opts_ad.batch_size = batch_size;
+            opts_ad.lr         = lr_adam;
+            opts_ad.max_epochs = max_epochs;
+            opts_ad.seed       = k;
+            opts_ad.eval_every = 1;
+            opts_ad.eval_tr    = true;
+
+            [theta_ad, hist_ad] = train_adam(theta0, layers, ...
+                dataset_splits.X_tr, dataset_splits.y_tr, ...
+                dataset_splits.X_va, dataset_splits.y_va, opts_ad);
+
+            thetas_k = {theta_gd, theta_bf, theta_ad};
+            hists_k  = {hist_gd,  hist_bf,  hist_ad};
+
+            % Avaliação única no conjunto de teste nas unidades originais
+            for alg = 1:3
+                th_best = thetas_k{alg};
+                hs_curr = hists_k{alg};
+
+                y_te_hat_scaled = forward_pass(th_best, layers, dataset_splits.X_te);
+                y_te_hat_orig   = inverse_transform_y(y_te_hat_scaled, dataset_splits.scaler);
+
+                m_te = compute_metrics(dataset_splits.y_te_raw, y_te_hat_orig);
+
+                exp_res.test_mse(a, alg, k)   = m_te.mse;
+                exp_res.test_rmse(a, alg, k)  = m_te.rmse;
+                exp_res.test_mae(a, alg, k)   = m_te.mae;
+                exp_res.test_r2(a, alg, k)    = m_te.r2;
+                exp_res.grad_evals(a, alg, k) = hs_curr.grad_evals;
+                exp_res.train_time(a, alg, k) = hs_curr.elapsed_time;
+
+                exp_res.histories{a, alg, k}   = hs_curr;
+                exp_res.best_thetas{a, alg, k} = th_best;
+            end
+        end
+
+        % Imprime resumo rápido da arquitetura concluída
+        for alg = 1:3
+            rmses = squeeze(exp_res.test_rmse(a, alg, :));
+            r2s   = squeeze(exp_res.test_r2(a, alg, :));
+            evals = squeeze(exp_res.grad_evals(a, alg, :));
+            times = squeeze(exp_res.train_time(a, alg, :));
+            fprintf('  -> %-4s | Test RMSE: %.3f ± %.3f | R2: %.4f ± %.4f | Ep-Eq: %.0f | Tempo por execucao: %.2fs\n', ...
+                    alg_names{alg}, mean(rmses), std(rmses), mean(r2s), std(r2s), mean(evals), mean(times));
+        end
+        fprintf('\n');
+        fflush(stdout);
+    end
+end
+
+function base_res = eval_baselines(conc_data, melb_data, p_window)
+    % EVAL_BASELINES Avalia os modelos de referência exigidos no teste:
+    %   - Concrete: Regressão Linear Múltipla (OLS ajustada no treino)
+    %   - Melbourne: Persistência T(t+1)=T(t) e Modelo Autorregressivo Linear AR(p)
+    %   Devolve métricas nas unidades originais (MPa e °C).
+
+    % 1. Concrete: Regressão Linear OLS (com termo independente / bias)
+    X_tr_c = [ones(size(conc_data.X_tr_raw, 1), 1), conc_data.X_tr_raw];
+    X_te_c = [ones(size(conc_data.X_te_raw, 1), 1), conc_data.X_te_raw];
+    beta_conc = X_tr_c \ conc_data.y_tr_raw;
+    y_pred_conc = X_te_c * beta_conc;
+
+    base_res.conc_ols = compute_metrics(conc_data.y_te_raw, y_pred_conc);
+    base_res.conc_pred = y_pred_conc;
+
+    % 2. Melbourne: Persistência T(t+1) = T(t) (coluna 1 de X_te_raw é T(t))
+    y_pred_pers = melb_data.X_te_raw(:, 1);
+    base_res.melb_pers = compute_metrics(melb_data.y_te_raw, y_pred_pers);
+    base_res.melb_pers_pred = y_pred_pers;
+
+    % 3. Melbourne: Modelo Autorregressivo Linear AR(p) sobre a mesma janela p
+    X_tr_ar = [ones(size(melb_data.X_tr_raw, 1), 1), melb_data.X_tr_raw(:, 1:p_window)];
+    X_te_ar = [ones(size(melb_data.X_te_raw, 1), 1), melb_data.X_te_raw(:, 1:p_window)];
+    beta_ar = X_tr_ar \ melb_data.y_tr_raw;
+    y_pred_ar = X_te_ar * beta_ar;
+
+    base_res.melb_ar = compute_metrics(melb_data.y_te_raw, y_pred_ar);
+    base_res.melb_ar_pred = y_pred_ar;
+
+    fprintf('================================================================================\n');
+    fprintf(' MODELOS DE REFERÊNCIA (CONJUNTO DE TESTE - UNIDADES ORIGINAIS)\n');
+    fprintf('================================================================================\n');
+    fprintf('Concrete  | Regressão Linear (OLS) -> RMSE: %6.3f MPa | MAE: %6.3f | R2: %.4f\n', ...
+            base_res.conc_ols.rmse, base_res.conc_ols.mae, base_res.conc_ols.r2);
+    fprintf('Melbourne | Persistência T(t+1)=T(t)-> RMSE: %6.3f °C  | MAE: %6.3f | R2: %.4f\n', ...
+            base_res.melb_pers.rmse, base_res.melb_pers.mae, base_res.melb_pers.r2);
+    fprintf('Melbourne | Autorregressivo AR(%d)   -> RMSE: %6.3f °C  | MAE: %6.3f | R2: %.4f\n', ...
+            p_window, base_res.melb_ar.rmse, base_res.melb_ar.mae, base_res.melb_ar.r2);
+    fprintf('================================================================================\n\n');
+end
+
+function print_summary_table(exp_res, unit_str)
+    % PRINT_SUMMARY_TABLE Imprime a tabela 3x3 (Arquitetura x Algoritmo) com:
+    %   RMSE e R2 (média ± std, mediana, melhor, pior) e tempo médio de treino.
+
+    arch_ids  = exp_res.arch_ids;
+    alg_names = exp_res.alg_names;
+
+    fprintf('=============================================================================================================\n');
+    fprintf(' TABELA RESUMO 3x3: %s (30 runs | Unidades: %s)\n', exp_res.dataset_name, unit_str);
+    fprintf('=============================================================================================================\n');
+    fprintf('%-4s | %-5s | %-15s | %-8s | %-8s | %-8s | %-15s | %-8s | %-7s\n', ...
+            'Arq', 'Alg', 'RMSE (M±Std)', 'Mediana', 'Melhor', 'Pior', 'R2 (M±Std)', 'Med R2', 'Tempo por execucao');
+    fprintf('-------------------------------------------------------------------------------------------------------------\n');
+
+    for a = 1:3
+        for alg = 1:3
+            rmses = squeeze(exp_res.test_rmse(a, alg, :));
+            r2s   = squeeze(exp_res.test_r2(a, alg, :));
+            times = squeeze(exp_res.train_time(a, alg, :));
+
+            fprintf('%-4s | %-5s | %6.3f ± %-6.3f | %8.3f | %8.3f | %8.3f | %6.4f ± %-6.4f | %8.4f | %6.2fs\n', ...
+                    arch_ids{a}, alg_names{alg}, ...
+                    mean(rmses), std(rmses), median(rmses), min(rmses), max(rmses), ...
+                    mean(r2s), std(r2s), median(r2s), mean(times));
+        end
+        if a < 3
+            fprintf('-------------------------------------------------------------------------------------------------------------\n');
+        end
+    end
+    fprintf('=============================================================================================================\n\n');
+end
+
+function plot_training_progress(exp_res, fig_dir)
+    % PLOT_TRAINING_PROGRESS Gera 6 figuras (3 por dataset: Arq A, B e C) mostrando
+    % a mediana e o intervalo interquartil (IQR: Q25-Q75) do treino e validação
+    % ao longo dos epoch-equivalents (escala vertical logarítmica), plus versão vs tempo.
+
+    arch_ids  = exp_res.arch_ids;
+    alg_names = exp_res.alg_names;
+    max_ep    = exp_res.max_epochs;
+    n_runs    = exp_res.n_runs;
+    ds_lower  = lower(exp_res.dataset_name);
+
+    colors = {[0.85 0.25 0.20], [0.15 0.60 0.30], [0.15 0.45 0.80]};
+    ep_grid = (1:max_ep)';
+
+    for a = 1:3
+        % Matrizes interpoladas numa grelha comum de 1..max_ep epoch-equivalents
+        tr_all = zeros(3, n_runs, max_ep);
+        va_all = zeros(3, n_runs, max_ep);
+        tm_all = zeros(3, n_runs, max_ep);
+
+        for alg = 1:3
+            for k = 1:n_runs
+                hs = exp_res.histories{a, alg, k};
+                eq = hs.epoch_eq(:);
+                tr = hs.tr_loss(:);
+                va = hs.va_loss(:);
+
+                if length(eq) == max_ep && all(eq == ep_grid)
+                    tr_interp = tr;
+                    va_interp = va;
+                else
+                    % Garante monotonicidade estrita e estende último valor se BFGS parou cedo
+                    [eq_u, u_idx] = unique(eq, 'last');
+                    tr_u = tr(u_idx);
+                    va_u = va(u_idx);
+                    if eq_u(1) > 1
+                        eq_u = [1; eq_u];
+                        tr_u = [tr_u(1); tr_u];
+                        va_u = [va_u(1); va_u];
+                    end
+                    if eq_u(end) < max_ep
+                        eq_u = [eq_u; max_ep];
+                        tr_u = [tr_u; tr_u(end)];
+                        va_u = [va_u; va_u(end)];
+                    end
+                    tr_interp = interp1(eq_u, tr_u, ep_grid, 'previous');
+                    va_interp = interp1(eq_u, va_u, ep_grid, 'previous');
+                end
+
+                tr_all(alg, k, :) = max(tr_interp, 1e-8);
+                va_all(alg, k, :) = max(va_interp, 1e-8);
+                tm_all(alg, k, :) = linspace(0, hs.elapsed_time, max_ep);
+            end
+        end
+
+        % --- Figura 1: Progresso vs Epoch-Equivalents (Treino e Validação lado a lado) ---
+        h1 = create_headless_fig([100, 100, 1150, 440]);
+        for panel = 1:2
+            subplot(1, 2, panel);
+            hold on;
+            for alg = 1:3
+                if panel == 1
+                    mat = squeeze(tr_all(alg, :, :));
+                    p_title = sprintf('%s - Arq %s (Treino)', exp_res.dataset_name, arch_ids{a});
+                else
+                    mat = squeeze(va_all(alg, :, :));
+                    p_title = sprintf('%s - Arq %s (Validação)', exp_res.dataset_name, arch_ids{a});
+                end
+
+                q25 = quantile(mat, 0.25, 1);
+                q50 = quantile(mat, 0.50, 1);
+                q75 = quantile(mat, 0.75, 1);
+
+                col = colors{alg};
+                % Banda IQR (Q25-Q75) com linhas tracejadas finas + Mediana sólida
+                plot(ep_grid, q50, '-', 'Color', col, 'LineWidth', 1.8);
+                plot(ep_grid, q25, '--', 'Color', col, 'LineWidth', 0.7);
+                plot(ep_grid, q75, '--', 'Color', col, 'LineWidth', 0.7);
+            end
+            hold off;
+            set(gca, 'YScale', 'log');
+            xlim([1, max_ep]);
+            xlabel('Epoch-Equivalents');
+            ylabel('MSE (unidades escaladas, log)');
+            title(p_title, 'FontWeight', 'bold');
+            legend('GD (Med)', 'GD Q25', 'GD Q75', ...
+                   'BFGS (Med)', 'BFGS Q25', 'BFGS Q75', ...
+                   'Adam (Med)', 'Adam Q25', 'Adam Q75', 'Location', 'northeast');
+            grid on;
+        end
+        print(h1, fullfile(fig_dir, sprintf('progress_ep_%s_arch%s.png', ds_lower, arch_ids{a})), '-dpng', '-r300');
+        close(h1);
+
+        % --- Figura 2: Progresso da Validação vs Tempo Decorrido (segundos) ---
+        h2 = create_headless_fig([100, 100, 650, 420]);
+        hold on;
+        for alg = 1:3
+            mat_va = squeeze(va_all(alg, :, :));
+            mat_tm = squeeze(tm_all(alg, :, :));
+            q50_va = quantile(mat_va, 0.50, 1);
+            q50_tm = quantile(mat_tm, 0.50, 1);
+            plot(q50_tm, q50_va, '-', 'Color', colors{alg}, 'LineWidth', 1.8);
+        end
+        hold off;
+        set(gca, 'YScale', 'log');
+        xlabel('Tempo Mediano Decorrido (s)');
+        ylabel('Validação MSE (escalado, log)');
+        title(sprintf('%s - Arq %s (Convergência vs Tempo)', exp_res.dataset_name, arch_ids{a}), 'FontWeight', 'bold');
+        legend('Mini-batch GD', 'BFGS', 'Adam', 'Location', 'northeast');
+        grid on;
+        print(h2, fullfile(fig_dir, sprintf('progress_time_%s_arch%s.png', ds_lower, arch_ids{a})), '-dpng', '-r300');
+        close(h2);
+    end
+end
+
+function plot_custom_boxplots(exp_res, unit_str, fig_dir)
+    % PLOT_CUSTOM_BOXPLOTS Desenha box plots dos erros finais no teste (RMSE)
+    % para as 9 combinações (3 arquiteturas x 3 algoritmos) SEM usar toolboxes.
+
+    arch_ids  = exp_res.arch_ids;
+    alg_names = exp_res.alg_names;
+    ds_lower  = lower(exp_res.dataset_name);
+
+    h = create_headless_fig([100, 100, 950, 480]);
+    hold on;
+
+    labels = cell(9, 1);
+    colors = {[0.85 0.35 0.30], [0.25 0.65 0.40], [0.25 0.50 0.80]};
+    box_w  = 0.25;
+    pos    = 0;
+
+    for a = 1:3
+        for alg = 1:3
+            pos = pos + 1;
+            vals = sort(squeeze(exp_res.test_rmse(a, alg, :)));
+            labels{pos} = sprintf('%s-%s', arch_ids{a}, alg_names{alg});
+
+            q25 = quantile(vals, 0.25);
+            q50 = quantile(vals, 0.50);
+            q75 = quantile(vals, 0.75);
+            iqr_val = q75 - q25;
+
+            low_whisker  = min(vals(vals >= q25 - 1.5 * iqr_val));
+            high_whisker = max(vals(vals <= q75 + 1.5 * iqr_val));
+            outliers     = vals(vals < low_whisker | vals > high_whisker);
+
+            col = colors{alg};
+
+            % Caixa (Q25 a Q75)
+            patch([pos - box_w, pos + box_w, pos + box_w, pos - box_w], ...
+                  [q25, q25, q75, q75], col, 'EdgeColor', 'k', 'LineWidth', 1.1);
+
+            % Linha da Mediana
+            plot([pos - box_w, pos + box_w], [q50, q50], '-k', 'LineWidth', 2.0);
+
+            % Bigodes (Whiskers) e terminais
+            plot([pos, pos], [q75, high_whisker], '--k', 'LineWidth', 1.0);
+            plot([pos, pos], [low_whisker, q25], '--k', 'LineWidth', 1.0);
+            plot([pos - box_w*0.5, pos + box_w*0.5], [high_whisker, high_whisker], '-k', 'LineWidth', 1.2);
+            plot([pos - box_w*0.5, pos + box_w*0.5], [low_whisker, low_whisker], '-k', 'LineWidth', 1.2);
+
+            % Outliers individuais
+            if ~isempty(outliers)
+                plot(repmat(pos, length(outliers), 1), outliers, 'ok', 'MarkerSize', 5, 'MarkerFaceColor', 'w');
+            end
+        end
+    end
+
+    % Separadores verticais entre arquiteturas A, B e C
+    yl = ylim;
+    plot([3.5, 3.5], yl, ':k', 'LineWidth', 1.0);
+    plot([6.5, 6.5], yl, ':k', 'LineWidth', 1.0);
+    hold off;
+
+    xlim([0.3, 9.7]);
+    set(gca, 'XTick', 1:9, 'XTickLabel', labels, 'FontSize', 9, 'FontWeight', 'bold');
+    ylabel(sprintf('Test RMSE (%s)', unit_str), 'FontSize', 10);
+    title(sprintf('Distribuição do Erro de Teste (30 Runs) - %s', exp_res.dataset_name), 'FontSize', 11, 'FontWeight', 'bold');
+    grid on;
+
+    print(h, fullfile(fig_dir, sprintf('boxplot_rmse_%s.png', ds_lower)), '-dpng', '-r300');
+    close(h);
+end
+
+function plot_predictions(exp_res, dataset_splits, dates_test, fig_dir)
+    % PLOT_PREDICTIONS Gera os gráficos de predição no teste e histogramas de resíduos
+    % utilizando o melhor modelo (menor RMSE de teste entre as 30 runs) da melhor combinação.
+
+    ds_lower = lower(exp_res.dataset_name);
+    d_in     = size(dataset_splits.X_te, 2);
+
+    % Identifica a melhor combinação (arquitetura, algoritmo) pela mediana do RMSE
+    med_mat = median(exp_res.test_rmse, 3);
+    [~, flat_idx] = min(med_mat(:));
+    [best_a, best_alg] = ind2sub([3, 3], flat_idx);
+
+    % Seleciona a run k com melhor desempenho nessa combinação
+    [~, best_k] = min(squeeze(exp_res.test_rmse(best_a, best_alg, :)));
+
+    layers     = build_arch(d_in, exp_res.arch_ids{best_a});
+    best_theta = exp_res.best_thetas{best_a, best_alg, best_k};
+
+    y_hat_sc = forward_pass(best_theta, layers, dataset_splits.X_te);
+    y_pred   = inverse_transform_y(y_hat_sc, dataset_splits.scaler);
+    y_true   = dataset_splits.y_te_raw;
+    resids   = y_true - y_pred;
+
+    best_label = sprintf('Arq %s + %s (Run %d)', exp_res.arch_ids{best_a}, exp_res.alg_names{best_alg}, best_k);
+
+    if strcmpi(exp_res.dataset_name, 'Concrete')
+        h = create_headless_fig([100, 100, 1050, 430]);
+
+        % 1. Previsto vs Medido
+        subplot(1, 2, 1);
+        scatter(y_true, y_pred, 18, [0.15 0.45 0.75], 'filled');
+        hold on;
+        lims = [min([y_true; y_pred]), max([y_true; y_pred])];
+        plot(lims, lims, '--r', 'LineWidth', 1.5);
+        hold off;
+        xlim(lims); ylim(lims);
+        xlabel('Resistência Medida (MPa)');
+        ylabel('Resistência Prevista (MPa)');
+        title(sprintf('Concrete: Previsto vs Medido (%s)', best_label), 'FontWeight', 'bold');
+        legend('Amostras de Teste', 'Ideal (y = x)', 'Location', 'northwest');
+        grid on;
+
+        % 2. Histograma de Resíduos
+        subplot(1, 2, 2);
+        hist(resids, 20);
+        h_patch = findobj(gca, 'Type', 'patch');
+        set(h_patch, 'FaceColor', [0.25 0.55 0.45], 'EdgeColor', 'w');
+        xlabel('Resíduo (Medido - Previsto) [MPa]');
+        ylabel('Frequência');
+        title(sprintf('Histograma de Resíduos (Média=%.2f, Std=%.2f)', mean(resids), std(resids)), 'FontWeight', 'bold');
+        grid on;
+
+        print(h, fullfile(fig_dir, 'predictions_concrete.png'), '-dpng', '-r300');
+        close(h);
+    else
+        h = create_headless_fig([100, 100, 1200, 430]);
+        N_te = length(y_true);
+
+        % 1. Série de Teste Completa (Observado vs Previsto)
+        subplot(1, 3, 1);
+        plot(1:N_te, y_true, '-k', 'LineWidth', 0.8);
+        hold on;
+        plot(1:N_te, y_pred, '--', 'Color', [0.85 0.25 0.20], 'LineWidth', 0.8);
+        hold off;
+        xlim([1, N_te]);
+        xlabel('Dias no Conjunto de Teste');
+        ylabel('Temperatura Mínima (°C)');
+        title(sprintf('Melbourne Teste Completo (%s)', best_label), 'FontWeight', 'bold');
+        legend('Observado', 'Previsto', 'Location', 'northeast');
+        grid on;
+
+        % 2. Janela Ampliada (primeiros 90 dias do teste)
+        subplot(1, 3, 2);
+        zoom_n = min(90, N_te);
+        plot(1:zoom_n, y_true(1:zoom_n), '-ok', 'MarkerSize', 3, 'LineWidth', 1.0);
+        hold on;
+        plot(1:zoom_n, y_pred(1:zoom_n), '-s', 'Color', [0.15 0.45 0.80], 'MarkerSize', 3, 'LineWidth', 1.0);
+        hold off;
+        xlim([1, zoom_n]);
+        xlabel('Dias (Janela Ampliada: 90 dias)');
+        ylabel('Temperatura Mínima (°C)');
+        title('Zoom: Observado vs Previsto', 'FontWeight', 'bold');
+        legend('Observado', 'Previsto', 'Location', 'northeast');
+        grid on;
+
+        % 3. Histograma de Resíduos
+        subplot(1, 3, 3);
+        hist(resids, 22);
+        h_patch = findobj(gca, 'Type', 'patch');
+        set(h_patch, 'FaceColor', [0.25 0.55 0.45], 'EdgeColor', 'w');
+        xlabel('Resíduo (Observado - Previsto) [°C]');
+        ylabel('Frequência');
+        title(sprintf('Resíduos (Média=%.2f, Std=%.2f)', mean(resids), std(resids)), 'FontWeight', 'bold');
+        grid on;
+
+        print(h, fullfile(fig_dir, 'predictions_melbourne.png'), '-dpng', '-r300');
+        close(h);
+    end
 end

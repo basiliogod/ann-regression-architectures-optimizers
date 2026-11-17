@@ -44,7 +44,8 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
 
 % STEP 2: Análise Exploratória dos Dados (EDA)
     fprintf('\nA iniciar Step 2: Análise Exploratória dos Dados (EDA)...\n');
-    fig_dir = '../outputs';
+    fig_dir     = fullfile(script_dir, '..', 'outputs');
+    if ~exist(fig_dir, 'dir'), mkdir(fig_dir); end
 
     % 2.1 EDA Concrete
     corr_conc = L.eda_concrete(X_conc, y_conc, names_conc, fig_dir);
@@ -114,6 +115,8 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
  
 % STEP 6: Ajuste de Hiperparâmetros (Hyperparameter Tuning)
     fprintf('A iniciar Step 6: Tuning de Hiperparâmetros na validação...\n');
+    results_dir = fullfile(script_dir, '..', 'results');
+    if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
     lr_grid     = logspace(-4, -1, 6); % 6 valores: 1e-4, 3.98e-4, 1.58e-3, 6.31e-3, 2.51e-2, 1e-1
     n_tune_reps = 5;                   % 5 repetições por valor de learning rate
@@ -122,9 +125,62 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
 
     % Parâmetros fixos do BFGS (declarados explicitamente para o Step 7)
     bfgs_opts.gtol         = 1e-6;     % Tolerância na norma infinito do gradiente
+    bfgs_opts.stol         = 1e-8;     % Tolerância na norma do passo (paragem por estagnação)
+    bfgs_opts.ftol         = 1e-9;     % Tolerância na variação da perda (paragem por estagnação)
     bfgs_opts.wolfe_c1     = 1e-4;     % Constante condição de Armijo
     bfgs_opts.wolfe_c2     = 0.9;      % Constante condição de curvatura de Wolfe
     bfgs_opts.max_ls_evals = 15;       % Máximo de avaliações por line search
 
     tune_conc = L.tune_learning_rates(conc_data, 'Concrete', lr_grid, n_tune_reps, tune_epochs, batch_size, fig_dir);
     tune_melb = L.tune_learning_rates(melb_data, 'Melbourne', lr_grid, n_tune_reps, tune_epochs, batch_size, fig_dir);    
+
+    % Guarda os resultados do tuning (Step 6) para consulta e reutilização futura
+    path_tuning_mat = fullfile(results_dir, 'tuning_results.mat');
+    save(path_tuning_mat, 'tune_conc', 'tune_melb', 'lr_grid', 'n_tune_reps', 'tune_epochs', 'batch_size');
+    fprintf('Resultados do Step 6 guardados com sucesso em %s\n\n', path_tuning_mat);
+
+% STEP 7: Experiências Finais (18 combinações x 30 runs emparelhadas)
+    fprintf('A iniciar Step 7: Experiências Finais...\n');
+
+    n_final_runs      = 30;  % Seeds 1 a 30
+    epochs_concrete   = 250; % Orçamento em epoch-equivalents para Concrete
+    epochs_melbourne  = 200; % Orçamento em epoch-equivalents para Melbourne
+
+    res_conc = L.run_final_experiments(conc_data, 'Concrete',  tune_conc, bfgs_opts, epochs_concrete,  batch_size, n_final_runs);
+    path_conc_mat = fullfile(results_dir, 'final_results_concrete.mat');
+    save(path_conc_mat, 'res_conc', 'tune_conc');
+    fprintf('Resultados de Concrete guardados em %s\n\n', path_conc_mat);
+
+    res_melb = L.run_final_experiments(melb_data, 'Melbourne', tune_melb, bfgs_opts, epochs_melbourne, batch_size, n_final_runs);
+    path_melb_mat = fullfile(results_dir, 'final_results_melbourne.mat');
+    save(path_melb_mat, 'res_melb', 'tune_melb');
+    fprintf('Resultados de Melbourne guardados em %s\n\n', path_melb_mat);
+
+    path_all_mat = fullfile(results_dir, 'final_results_all.mat');
+    save(path_all_mat, 'res_conc', 'res_melb', 'tune_conc', 'tune_melb');
+    fprintf('Todos os resultados guardados com sucesso em %s\n', path_all_mat);
+
+% STEP 8: Resultados Finais, Modelos de Referência e Visualizações
+    fprintf('\nA iniciar Step 8: Geração de tabelas, baselines e gráficos finais...\n');
+
+    % 8.1 Modelos de Referência (Regressão Linear OLS, Persistência e AR(p))
+    base_res = L.eval_baselines(conc_data, melb_data, p_window);
+
+    % 8.2 Tabelas Resumo 3x3 (Arquitetura x Algoritmo)
+    L.print_summary_table(res_conc, 'MPa');
+    L.print_summary_table(res_melb, '°C');
+
+    % 8.3 Figuras de Progresso de Treino (Mediana + IQR em escala logarítmica)
+    L.plot_training_progress(res_conc, fig_dir);
+    L.plot_training_progress(res_melb, fig_dir);
+
+    % 8.4 Box Plots dos Erros Finais no Teste (implementados sem toolbox)
+    L.plot_custom_boxplots(res_conc, 'MPa', fig_dir);
+    L.plot_custom_boxplots(res_melb, '°C',  fig_dir);
+
+    % 8.5 Gráficos de Predição vs Observado e Histogramas de Resíduos
+    dates_melb_te = dates_melb_fe(melb_data.idx_te);
+    L.plot_predictions(res_conc, conc_data, {}, fig_dir);
+    L.plot_predictions(res_melb, melb_data, dates_melb_te, fig_dir);
+
+    fprintf('\nEstudo comparativo concluído com sucesso! Resultados guardados em %s e figuras em %s\n', results_dir, fig_dir);

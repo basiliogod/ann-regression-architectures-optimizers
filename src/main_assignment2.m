@@ -1,13 +1,16 @@
 % Script principal de execução do estudo comparativo.
-clear; clc; close all;
-% Compatibilidade gráfica para exportação headless no GNU Octave
+clear; clc;
+
+% Compatibilidade gráfica para exportação headless no GNU Octave 
 if exist('OCTAVE_VERSION', 'builtin')
-    available_tk = available_graphics_toolkits();
-    if ismember('gnuplot', available_tk)
+    warning('off', 'all');
+    if (isempty(getenv('DISPLAY')) || ~isguirunning()) && ismember('gnuplot', available_graphics_toolkits())
         graphics_toolkit('gnuplot');
         set(0, 'DefaultFigure__graphics_toolkit__', 'gnuplot');
     end
 end
+
+close all;
 
 % Obtém a diretoria absoluta onde este script está guardado (pasta src/)
 script_dir = fileparts(mfilename('fullpath'));

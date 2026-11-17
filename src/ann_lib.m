@@ -29,6 +29,20 @@ function L = ann_lib()
     L.train_adam      = @train_adam;
 end
 
+function h = create_headless_fig(pos)
+    % CREATE_HEADLESS_FIG : Função auxiliar que cria uma figura invisível compatível com ambientes sem ecrã.
+    if exist('OCTAVE_VERSION', 'builtin')
+        warning('off', 'Octave:deprecated-graphics-toolkit');
+        if (isempty(getenv('DISPLAY')) || ~isguirunning()) && ismember('gnuplot', available_graphics_toolkits())
+            graphics_toolkit('gnuplot');
+            h = figure('Visible', 'off', 'Position', pos);
+            set(h, '__graphics_toolkit__', 'gnuplot');
+            return;
+        end
+    end
+    h = figure('Visible', 'off', 'Position', pos);
+end
+
 function [X, y, var_names] = load_concrete(filepath)
     % LOAD_CONCRETE : Carrega o dataset Concrete Compressive Strength a partir do csv.
     %   Entradas:
@@ -199,7 +213,7 @@ function corr_mat = eda_concrete(X, y, var_names, fig_dir)
     short_names = {'Cement', 'Slag', 'FlyAsh', 'Water', 'Superplast', 'CoarseAgg', 'FineAgg', 'Age', 'Strength'};
 
     % 1. Histogramas de todas as variáveis
-    h1 = figure('Visible', 'off', 'Position', [100, 100, 1100, 850]);
+    h1 = create_headless_fig([100, 100, 1100, 850]);
     for j = 1:9
         subplot(3, 3, j);
         hist(full_data(:, j), 20);
@@ -214,7 +228,7 @@ function corr_mat = eda_concrete(X, y, var_names, fig_dir)
 
     % 2. Matriz de Correlação
     corr_mat = corrcoef(full_data);
-    h2 = figure('Visible', 'off', 'Position', [100, 100, 800, 680]);
+    h2 = create_headless_fig([100, 100, 800, 680]);
     imagesc(corr_mat, [-1, 1]);
     colormap('jet');
     colorbar;
@@ -240,7 +254,7 @@ function corr_mat = eda_concrete(X, y, var_names, fig_dir)
     close(h2);
 
     % 3. Scatter plots das 8 entradas contra o alvo 
-    h3 = figure('Visible', 'off', 'Position', [100, 100, 1200, 580]);
+    h3 = create_headless_fig([100, 100, 1200, 580]);
     for j = 1:8
         subplot(2, 4, j);
         scatter(X(:, j), y, 12, [0.2 0.4 0.7], 'filled');
@@ -305,7 +319,7 @@ function eda_info = eda_melbourne(dates, temps, fig_dir)
     eda_info.r_lag1        = corrcoef(temps(1:end-1), temps(2:end))(1, 2);
 
     % Figura 1: Série completa + Distribuição + Comportamento Mensal + Ciclo Anual
-    h1 = figure('Visible', 'off', 'Position', [100, 100, 1200, 800]);
+    h1 = create_headless_fig([100, 100, 1200, 800]);
 
     % 1a. Série completa
     subplot(2, 2, 1);
@@ -357,7 +371,7 @@ function eda_info = eda_melbourne(dates, temps, fig_dir)
     close(h1);
 
     % Figura 2: ACF + Scatter T(t) vs T(t+1) + Saltos diários
-    h2 = figure('Visible', 'off', 'Position', [100, 100, 1200, 420]);
+    h2 = create_headless_fig([100, 100, 1200, 420]);
 
     % 2a. Função de Autocorrelação
     subplot(1, 3, 1);

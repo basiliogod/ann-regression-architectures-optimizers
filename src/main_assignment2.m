@@ -111,3 +111,20 @@ path_melbourne = fullfile(script_dir, '..', 'data', 'daily-minimum-temperatures-
         fprintf('  Arquitetura %s (%4d parâmetros) -> Erro relativo máximo: %.3e\n', arch_ids{a}, n_params, rel_err);
     end
     fprintf('\n');
+ 
+% STEP 6: Ajuste de Hiperparâmetros (Hyperparameter Tuning)
+    fprintf('A iniciar Step 6: Tuning de Hiperparâmetros na validação...\n');
+
+    lr_grid     = logspace(-4, -1, 6); % 6 valores: 1e-4, 3.98e-4, 1.58e-3, 6.31e-3, 2.51e-2, 1e-1
+    n_tune_reps = 5;                   % 5 repetições por valor de learning rate
+    tune_epochs = 60;                  % Orçamento de épocas para avaliação na validação
+    batch_size  = 32;                  % Tamanho fixo do mini-batch (GD e Adam)
+
+    % Parâmetros fixos do BFGS (declarados explicitamente para o Step 7)
+    bfgs_opts.gtol         = 1e-6;     % Tolerância na norma infinito do gradiente
+    bfgs_opts.wolfe_c1     = 1e-4;     % Constante condição de Armijo
+    bfgs_opts.wolfe_c2     = 0.9;      % Constante condição de curvatura de Wolfe
+    bfgs_opts.max_ls_evals = 15;       % Máximo de avaliações por line search
+
+    tune_conc = L.tune_learning_rates(conc_data, 'Concrete', lr_grid, n_tune_reps, tune_epochs, batch_size, fig_dir);
+    tune_melb = L.tune_learning_rates(melb_data, 'Melbourne', lr_grid, n_tune_reps, tune_epochs, batch_size, fig_dir);    

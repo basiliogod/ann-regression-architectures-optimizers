@@ -299,7 +299,58 @@ C & \textit{Deep} ($10 \times 10$) & $1\,111$ & $3{,}437 \times 10^{-7}$ \\
 \end{center}
 \end{table}
 
-\subsection{Ajuste de hiperparamêtros}
+\subsection{Ajuste de Hiperparâmetros}
+
+Para assegurar uma comparação justa e livre de viés entre os otimizadores, ajustou-se a taxa de aprendizagem ($\eta$) do \textit{Mini-batch Gradient Descent} e do \textit{Adam} exclusivamente com base no erro quadrático médio (MSE) obtido no conjunto de validação, separadamente para cada conjunto de dados e arquitetura.
+
+\subsubsection{Grelha Logarítmica e Seleção para GD e Adam}
+Em ambos os algoritmos fixou-se o tamanho do \textit{mini-batch} em $B = 32$ amostras (reembaralhadas a cada época), mantendo os parâmetros de momento do Adam nos seus valores padrão propostos por Kingma e Ba \cite{b5} ($\beta_1 = 0{,}9$, $\beta_2 = 0{,}999$ e $\epsilon = 10^{-8}$). Avaliou-se uma grelha logarítmica de $6$ valores espaçados uniformemente no intervalo $\eta \in [10^{-4}, 10^{-1}]$.
+Para mitigar o efeito da inicialização aleatória dos pesos, cada configuração foi executada $5$ vezes (com seeds distintas) durante $60$ épocas, selecionando-se o valor de $\eta$ que minimizou a mediana do menor MSE de validação observado ao longo do treino.
+
+As Figuras ~\ref{fig:tuning_conc} e \ref{fig:tuning_melb} ilustram a sensibilidade dos algoritmos à taxa de aprendizagem, e a Tabela~\ref{tab:best_lrs} apresenta os valores ótimos selecionados. Verifica-se que o \textit{Mini-batch GD} exige taxas elevadas ($\eta \in \{2{,}51 \times 10^{-2},\, 1{,}00 \times 10^{-1}\}$) para progredir eficazmente dentro do orçamento de épocas, enquanto o \textit{Adam} atinge o seu ótimo em ordens de grandeza inferiores ($3{,}98 \times 10^{-4}$ a $2{,}51 \times 10^{-2}$) graças à adaptação individual do passo por parâmetro. Na arquitetura profunda (\textbf{C}, com $10$ camadas escondidas), o Adam revela acentuada sensibilidade a passos elevados, observando-se uma forte instabilidade para $\eta \ge 2{,}51 \times 10^{-2}$ em ambos os problemas, justificando a escolha de \textit{learning rates} mais conservadoras ($\eta = 6{,}31 \times 10^{-3}$ no \textit{Concrete} e $\eta = 3{,}98 \times 10^{-4}$ em \textit{Melbourne}).
+
+\begin{table}[H]
+\caption{Taxas de aprendizagem ($\eta$) selecionadas na validação e respetiva mediana do MSE de validação (em unidades escaladas).}
+\label{tab:best_lrs}
+\begin{center}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Arq.} & \textbf{$\eta_{\text{GD}}$} & \textbf{MSE(GD)} & \textbf{$\eta_{\text{Adam}}$} & \textbf{MSE(Adam)} \\
+\midrule
+\textit{Concrete} & A & $1{,}00 \times 10^{-1}$ & $0{,}0988$ & $2{,}51 \times 10^{-2}$ & $0{,}0931$ \\
+\textit{Concrete} & B & $1{,}00 \times 10^{-1}$ & $0{,}0988$ & $6{,}31 \times 10^{-3}$ & $0{,}0823$ \\
+\textit{Concrete} & C & $1{,}00 \times 10^{-1}$ & $0{,}0979$ & $6{,}31 \times 10^{-3}$ & $0{,}0930$ \\
+\midrule
+\textit{Melbourne} & A & $1{,}00 \times 10^{-1}$ & $0{,}3064$ & $1{,}58 \times 10^{-3}$ & $0{,}3074$ \\
+\textit{Melbourne} & B & $2{,}51 \times 10^{-2}$ & $0{,}3123$ & $1{,}58 \times 10^{-3}$ & $0{,}3085$ \\
+\textit{Melbourne} & C & $2{,}51 \times 10^{-2}$ & $0{,}3169$ & $3{,}98 \times 10^{-4}$ & $0{,}3095$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{tuning_concrete.png}
+\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para o conjunto de dados \textit{Concrete} (mediana de $5$ repetições em escala logarítmica).}
+\label{fig:tuning_conc}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{tuning_melbourne.png}
+\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para o conjunto de dados \textit{Melbourne} (mediana de $5$ repetições em escala logarítmica).}
+\label{fig:tuning_melb}
+\end{figure}
+
+\subsubsection{Configuração do Algoritmo BFGS}
+Por se tratar de um método Quasi-Newton de segunda ordem executado sobre o conjunto de treino completo, o algoritmo BFGS dispensa taxa de aprendizagem fixa, determinando o comprimento do passo $\alpha_k$ dinamicamente através de uma pesquisa linear segundo as condições fortes de Wolfe:
+\begin{itemize}
+    \item \textbf{Condição de decréscimo suficiente (Armijo):} constante $c_1 = 10^{-4}$;
+    \item \textbf{Condição de curvatura:} constante $c_2 = 0{,}9$, com um limite máximo de $15$ avaliações por pesquisa linear e atualização da aproximação da inversa da Hessiana $\mathbf{H}_k$ protegida contra curvatura não positiva ($\mathbf{s}_k^\top \mathbf{y}_k > 10^{-14}$);
+    \item \textbf{Critérios de paragem:} o algoritmo termina antecipadamente caso a norma infinito do gradiente atinja $\|\nabla \mathcal{L}(\boldsymbol{\theta}_k)\|_\infty \le 10^{-6}$ ou a norma do passo seja inferior a $\|\mathbf{s}_k\|_2 < 10^{-12}$; caso contrário, prossegue até esgotar o orçamento máximo de avaliações de gradiente (\textit{epoch-equivalents}) definido para as experiências finais.
+\end{itemize}
+
 \subsection{Experimentos Finais}
 
 \section{Resultados}

@@ -90,6 +90,7 @@ ann-regression-architectures-optimizers/
 │   └── main_assignment2.m                         # Master script orchestrating Steps 1 through 8
 │
 ├── results/
+│   ├── terminal_logs.txt                          # Copy of all terminal output
 │   ├── tuning_results.mat                         # Validation grid search curves and optimal learning rates
 │   ├── final_results_concrete.mat                 # 30-run paired metrics and histories for Concrete
 │   ├── final_results_melbourne.mat                # 30-run paired metrics and histories for Melbourne

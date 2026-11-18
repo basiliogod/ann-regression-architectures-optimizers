@@ -376,6 +376,135 @@ O conjunto de teste foi mantido estritamente isolado durante todo o desenvolvime
 
 \section{Resultados}
 
+Nesta secção apresentam-se os resultados experimentais obtidos sobre o conjunto de teste (nas unidades físicas originais), bem como as curvas de convergência ao longo das $30$ repetições emparelhadas.
+
+\subsection{Modelos de Referência e Tabelas Resumo ($3 \times 3$)}
+
+Para contextualizar o desempenho das redes neuronais, a Tabela~\ref{tab:baselines} apresenta as métricas dos modelos lineares e ingénuos avaliados exatamente nas mesmas partições de teste \cite{b1, b10}.
+
+\begin{table}[htbp]
+\caption{Desempenho dos modelos de referência no conjunto de teste.}
+\label{tab:baselines}
+\centering
+\scriptsize
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Modelo} & \textbf{RMSE} & \textbf{MAE} & \textbf{$R^2$} \\
+\midrule
+\textit{Concrete} & Regressão Linear & $6{,}417\text{ MPa}$ & $5{,}023\text{ MPa}$ & $0{,}8418$ \\
+\midrule
+\textit{Melbourne} & Persistência & $2{,}574^{\circ}\text{C}$ & $2{,}038^{\circ}\text{C}$ & $0{,}5640$ \\
+\textit{Melbourne} & Autorreg. $\text{AR}(7)$ & $2{,}262^{\circ}\text{C}$ & $1{,}760^{\circ}\text{C}$ & $0{,}6634$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As Tabelas~\ref{tab:res_concrete} e \ref{tab:res_melbourne} sintetizam o desempenho das nove combinações ($\text{Arquitetura} \times \text{Algoritmo}$) ao longo das $30$ inicializações para os conjuntos \textit{Concrete} e \textit{Melbourne}, respetivamente.
+
+\begin{table*}[htbp]
+\caption{Resumo de desempenho no conjunto de teste para \textit{Concrete} ($30$ repetições, unidades em $\text{MPa}$).}
+\label{tab:res_concrete}
+\centering
+\scriptsize
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+\textbf{Arq.} & \textbf{Alg.} & \textbf{RMSE (Média $\pm$ Std)} & \textbf{Mediana} & \textbf{Melhor} & \textbf{Pior} & \textbf{$R^2$ (Média $\pm$ Std)} & \textbf{Mediana $R^2$} & \textbf{Tempo Médio} \\
+\midrule
+A & GD   & $5{,}206 \pm 0{,}278$ & $5{,}206$ & $4{,}515$ & $5{,}723$ & $0{,}8956 \pm 0{,}0110$ & $0{,}8959$ & $2{,}66\text{ s}$ \\
+A & BFGS & $5{,}008 \pm 0{,}264$ & $4{,}956$ & $4{,}583$ & $5{,}616$ & $0{,}9034 \pm 0{,}0103$ & $0{,}9056$ & $0{,}77\text{ s}$ \\
+A & Adam & $5{,}161 \pm 0{,}273$ & $5{,}173$ & $4{,}658$ & $5{,}787$ & $0{,}8974 \pm 0{,}0108$ & $0{,}8972$ & $2{,}88\text{ s}$ \\
+\midrule
+B & GD   & $4{,}631 \pm 0{,}191$ & $4{,}631$ & $4{,}297$ & $5{,}332$ & $0{,}9175 \pm 0{,}0070$ & $0{,}9176$ & $10{,}83\text{ s}$ \\
+B & BFGS & $\mathbf{4{,}389 \pm 0{,}150}$ & $\mathbf{4{,}385}$ & $4{,}127$ & $\mathbf{4{,}732}$ & $\mathbf{0{,}9259 \pm 0{,}0051}$ & $\mathbf{0{,}9261}$ & $29{,}90\text{ s}$ \\
+B & Adam & $4{,}440 \pm 0{,}210$ & $4{,}396$ & $4{,}012$ & $4{,}958$ & $0{,}9241 \pm 0{,}0072$ & $0{,}9258$ & $11{,}26\text{ s}$ \\
+\midrule
+C & GD   & $4{,}855 \pm 0{,}278$ & $4{,}788$ & $4{,}423$ & $5{,}525$ & $0{,}9091 \pm 0{,}0106$ & $0{,}9119$ & $18{,}52\text{ s}$ \\
+C & BFGS & $4{,}675 \pm 0{,}374$ & $4{,}680$ & $\mathbf{3{,}908}$ & $5{,}426$ & $0{,}9155 \pm 0{,}0135$ & $0{,}9159$ & $20{,}98\text{ s}$ \\
+C & Adam & $4{,}602 \pm 0{,}386$ & $4{,}756$ & $3{,}928$ & $5{,}259$ & $0{,}9181 \pm 0{,}0135$ & $0{,}9131$ & $20{,}09\text{ s}$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[htbp]
+\caption{Resumo de desempenho no conjunto de teste para \textit{Melbourne} ($30$ repetições, unidades em $^{\circ}\text{C}$).}
+\label{tab:res_melbourne}
+\centering
+\scriptsize
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+\textbf{Arq.} & \textbf{Alg.} & \textbf{RMSE (Média $\pm$ Std)} & \textbf{Mediana} & \textbf{Melhor} & \textbf{Pior} & \textbf{$R^2$ (Média $\pm$ Std)} & \textbf{Mediana $R^2$} & \textbf{Tempo Médio} \\
+\midrule
+A & GD   & $2{,}193 \pm 0{,}021$ & $2{,}192$ & $2{,}152$ & $2{,}250$ & $0{,}6834 \pm 0{,}0060$ & $0{,}6838$ & $21{,}29\text{ s}$ \\
+A & BFGS & $2{,}184 \pm 0{,}017$ & $2{,}183$ & $2{,}146$ & $2{,}223$ & $0{,}6863 \pm 0{,}0050$ & $0{,}6866$ & $2{,}21\text{ s}$ \\
+A & Adam & $\mathbf{2{,}175 \pm 0{,}017}$ & $\mathbf{2{,}177}$ & $\mathbf{2{,}145}$ & $2{,}214$ & $\mathbf{0{,}6887 \pm 0{,}0048}$ & $0{,}6880$ & $23{,}06\text{ s}$ \\
+\midrule
+B & GD   & $2{,}182 \pm 0{,}010$ & $2{,}181$ & $2{,}165$ & $2{,}206$ & $0{,}6866 \pm 0{,}0030$ & $0{,}6869$ & $24{,}52\text{ s}$ \\
+B & BFGS & $2{,}181 \pm 0{,}009$ & $2{,}180$ & $2{,}164$ & $\mathbf{2{,}203}$ & $0{,}6870 \pm 0{,}0026$ & $0{,}6872$ & $17{,}56\text{ s}$ \\
+B & Adam & $2{,}181 \pm 0{,}013$ & $\mathbf{2{,}177}$ & $2{,}164$ & $2{,}219$ & $0{,}6870 \pm 0{,}0036$ & $\mathbf{0{,}6882}$ & $25{,}62\text{ s}$ \\
+\midrule
+C & GD   & $2{,}207 \pm 0{,}022$ & $2{,}202$ & $2{,}166$ & $2{,}251$ & $0{,}6794 \pm 0{,}0065$ & $0{,}6810$ & $41{,}94\text{ s}$ \\
+C & BFGS & $2{,}191 \pm 0{,}026$ & $2{,}187$ & $2{,}155$ & $2{,}266$ & $0{,}6841 \pm 0{,}0074$ & $0{,}6852$ & $15{,}59\text{ s}$ \\
+C & Adam & $2{,}200 \pm 0{,}017$ & $2{,}202$ & $2{,}158$ & $2{,}232$ & $0{,}6814 \pm 0{,}0050$ & $0{,}6810$ & $42{,}39\text{ s}$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+No conjunto \textit{Concrete}, todas as redes neuronais superam largamente a regressão linear ($6{,}417\text{ MPa}$), destacando-se a arquitetura larga (\textbf{B}) treinada com BFGS ($\text{RMSE} = 4{,}389 \pm 0{,}150\text{ MPa}$, $R^2 = 0{,}9259$) e com Adam ($4{,}440 \pm 0{,}210\text{ MPa}$). Em \textit{Melbourne}, todas as configurações superam tanto a persistência ($2{,}574^{\circ}\text{C}$) como o modelo $\text{AR}(7)$ ($2{,}262^{\circ}\text{C}$), atingindo o melhor desempenho médio na arquitetura de referência (\textbf{A}) com Adam ($2{,}175 \pm 0{,}017^{\circ}\text{C}$) e a menor dispersão na arquitetura \textbf{B} com BFGS ($2{,}181 \pm 0{,}009^{\circ}\text{C}$).
+
+\subsection{Curvas de Progresso de Treino e Validação}
+
+As Figs.~\ref{fig:prog_conc} e \ref{fig:prog_melb} apresentam a evolução da mediana e do intervalo interquartil ($Q_{25}\text{--}Q_{75}$) do MSE de treino e de validação ao longo dos \textit{epoch-equivalents} (em escala vertical logarítmica), garantindo igualdade de custo em avaliações de gradiente. Complementarmente, a Fig.~\ref{fig:prog_time} compara a convergência na validação em função do tempo real decorrido.
+
+\begin{figure*}[htbp]
+\centering
+\subfloat[Arquitetura A (\textit{Reference})]{\includegraphics[width=0.325\textwidth]{progress_ep_concrete_archA.png}} \hfill
+\subfloat[Arquitetura B (\textit{Wide})]{\includegraphics[width=0.325\textwidth]{progress_ep_concrete_archB.png}} \hfill
+\subfloat[Arquitetura C (\textit{Deep})]{\includegraphics[width=0.325\textwidth]{progress_ep_concrete_archC.png}}
+\caption{Evolução do MSE de treino e validação ao longo de $250$ \textit{epoch-equivalents} no conjunto \textit{Concrete} (mediana em linha contínua e intervalo interquartil $Q_{25}\text{--}Q_{75}$ a tracejado sobre $30$ execuções).}
+\label{fig:prog_conc}
+\end{figure*}
+
+\begin{figure*}[htbp]
+\centering
+\subfloat[Arquitetura A (\textit{Reference})]{\includegraphics[width=0.325\textwidth]{progress_ep_melbourne_archA.png}} \hfill
+\subfloat[Arquitetura B (\textit{Wide})]{\includegraphics[width=0.325\textwidth]{progress_ep_melbourne_archB.png}} \hfill
+\subfloat[Arquitetura C (\textit{Deep})]{\includegraphics[width=0.325\textwidth]{progress_ep_melbourne_archC.png}}
+\caption{Evolução do MSE de treino e validação ao longo de $200$ \textit{epoch-equivalents} no conjunto \textit{Melbourne} (mediana em linha contínua e intervalo interquartil $Q_{25}\text{--}Q_{75}$ a tracejado sobre $30$ execuções).}
+\label{fig:prog_melb}
+\end{figure*}
+
+\begin{figure*}[htbp]
+\centering
+\subfloat[\textit{Concrete} -- Arq. A]{\includegraphics[width=0.31\textwidth]{progress_time_concrete_archA.png}} \hfill
+\subfloat[\textit{Concrete} -- Arq. B]{\includegraphics[width=0.31\textwidth]{progress_time_concrete_archB.png}} \hfill
+\subfloat[\textit{Concrete} -- Arq. C]{\includegraphics[width=0.31\textwidth]{progress_time_concrete_archC.png}} \\
+\subfloat[\textit{Melbourne} -- Arq. A]{\includegraphics[width=0.31\textwidth]{progress_time_melbourne_archA.png}} \hfill
+\subfloat[\textit{Melbourne} -- Arq. B]{\includegraphics[width=0.31\textwidth]{progress_time_melbourne_archB.png}} \hfill
+\subfloat[\textit{Melbourne} -- Arq. C]{\includegraphics[width=0.31\textwidth]{progress_time_melbourne_archC.png}}
+\caption{Convergência mediana do MSE de validação em função do tempo real de execução (segundos) para todas as arquiteturas em ambos os conjuntos de dados.}
+\label{fig:prog_time}
+\end{figure*}
+
+\subsection{Distribuição dos Erros de Teste e Predições}
+
+A Fig.~\ref{fig:boxplots} ilustra a distribuição do RMSE final no teste ao longo das $30$ repetições para as $9$ combinações de cada problema. Por fim, a Fig.~\ref{fig:predictions} exibe a qualidade do ajuste do melhor modelo de cada conjunto de dados: valores previstos contra medidos para o \textit{Concrete} ($\text{Arq. B} + \text{BFGS}$, $\text{RMSE} = 4{,}127\text{ MPa}$) e série observada contra prevista (com janela ampliada de $90\text{ dias}$) para \textit{Melbourne} ($\text{Arq. A} + \text{Adam}$, $\text{RMSE} = 2{,}145^{\circ}\text{C}$), acompanhados dos respetivos histogramas.
+
+\begin{figure*}[htbp]
+\centering
+\subfloat[Conjunto de dados \textit{Concrete} ($\text{MPa}$)]{\includegraphics[width=0.47\textwidth]{boxplot_rmse_concrete.png}} \hfill
+\subfloat[Conjunto de dados \textit{Melbourne} ($^{\circ}\text{C}$)]{\includegraphics[width=0.47\textwidth]{boxplot_rmse_melbourne.png}}
+\caption{Diagramas de extremos e quartis (\textit{box plots}) do erro RMSE no conjunto de teste ao longo das $30$ execuções emparelhadas.}
+\label{fig:boxplots}
+\end{figure*}
+
+\begin{figure*}[htbp]
+\centering
+\subfloat[\textit{Concrete}: Previsto vs. Medido e resíduos.]{\includegraphics[width=0.42\textwidth]{predictions_concrete.png}} \hfill
+\subfloat[\textit{Melbourne}: Previsão no teste, zoom ($90\text{ dias}$) e resíduos.]{\includegraphics[width=0.54\textwidth]{predictions_melbourne.png}}
+\caption{Avaliação visual das predições e distribuição dos resíduos no conjunto de teste para o melhor modelo de cada problema.}
+\label{fig:predictions}
+\end{figure*}
+
 \section{Discussão}
 
 \section{Conclusão}

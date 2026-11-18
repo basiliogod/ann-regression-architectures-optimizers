@@ -9,17 +9,33 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
-\usepackage{float}
 \usepackage{listings}
 \usepackage{subcaption}
 \usepackage{url}
+
+% Otimização de flutuação para evitar espaços em branco excessivos e manter <= 10 páginas
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.85}
+\setcounter{totalnumber}{8}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{4}
+
+\setlength{\textfloatsep}{5pt plus 1pt minus 2pt}
+\setlength{\dbltextfloatsep}{5pt plus 1pt minus 2pt}
+\setlength{\floatsep}{5pt plus 1pt minus 2pt}
+\setlength{\dblfloatsep}{5pt plus 1pt minus 2pt}
+\setlength{\intextsep}{5pt plus 1pt minus 2pt}
+\captionsetup{belowskip=1pt, aboveskip=2pt}
+\captionsetup[sub]{belowskip=1pt, aboveskip=1pt}
+
 \usepackage[hidelinks]{hyperref}
-\raggedbottom
 
 % Configuração para snippets de código MATLAB/Octave
 \lstset{
   language=Matlab,
-  basicstyle=\ttfamily\footnotesize,
+  basicstyle=\ttfamily\scriptsize,
   keywordstyle=\color{blue},
   commentstyle=\color{gray},
   numbers=left,
@@ -73,11 +89,13 @@ Para assegurar rigor metodológico e transparência total na avaliação do cust
 
 Para este estudo foram utilizados dois conjuntos de dados públicos com naturezas distintas: um problema de regressão estática tabular e um problema de previsão de séries temporais univariadas a um passo no futuro.
 
-O primeiro conjunto de dados, \textit{Concrete Compressive Strength} \cite{b2}, \cite{b3}, é composto por $1\,030$ observações experimentais sem valores em falta. O objetivo consiste em estimar a resistência à compressão do betão a partir de oito variáveis de entrada quantitativas que descrevem a composição química/física da mistura e o seu tempo de cura. A Tabela~\ref{tab:concrete_vars} resume as características, unidades de medida e descrições de todas as variáveis deste conjunto de dados.
+O primeiro conjunto de dados, \textit{Concrete Compressive Strength} \cite{b2, b3}, é composto por $1\,030$ observações experimentais sem valores em falta. O objetivo consiste em estimar a resistência à compressão do betão a partir de oito variáveis de entrada quantitativas que descrevem a composição química/física da mistura e o seu tempo de cura. A Tabela~\ref{tab:concrete_vars} resume as características, unidades de medida e descrições de todas as variáveis deste conjunto de dados.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Descrição das variáveis do conjunto de dados \textit{Concrete Compressive Strength}.}
-\begin{center}
+\label{tab:concrete_vars}
+\centering
+\scriptsize
 \begin{tabular}{@{}lll@{}}
 \toprule
 \textbf{Variável} & \textbf{Unidade} & \textbf{Descrição} \\
@@ -93,13 +111,11 @@ O primeiro conjunto de dados, \textit{Concrete Compressive Strength} \cite{b2}, 
 \textit{Compressive Strength} & $\text{MPa}$ & Resistência à compressão (Alvo)\\
 \bottomrule
 \end{tabular}
-\label{tab:concrete_vars}
-\end{center}
 \end{table}
 
-O segundo conjunto de dados, \textit{Daily Minimum Temperatures in Melbourne} \cite{b4}, representa uma série temporal com $3\,650$ registos diários contínuos, cobrindo um período de 10 anos entre 1 de janeiro de 1981 e 31 de dezembro de 1990. Cada observação é constituída por duas colunas: a data do registo (no formato \texttt{AAAA-MM-DD}) e a temperatura mínima diária registada na cidade de Melbourne, expressa em graus Celsius ($^{\circ}\text{C}$). Neste problema, a informação disponível até ao dia $t$ (valores passados da temperatura e eventuais atributos de calendário) é utilizada para prever a temperatura mínima do dia seguinte, $T(t+1)$.
+O segundo conjunto de dados, \textit{Daily Minimum Temperatures in Melbourne} \cite{b4}, representa uma série temporal com $3\,650$ registos diários contínuos, cobrindo um período de $10$ anos entre 1 de janeiro de 1981 e 31 de dezembro de 1990. Cada observação é constituída por duas colunas: a data do registo (\texttt{AAAA-MM-DD}) e a temperatura mínima diária registada na cidade de Melbourne, expressa em graus Celsius ($^{\circ}\text{C}$). Neste problema, a informação disponível até ao dia $t$ (valores passados da temperatura e atributos de calendário) é utilizada para prever a temperatura mínima do dia seguinte, $T(t+1)$.
 
-Na inspeção inicial de ambos os ficheiros, verificou-se a integridade estrutural dos registos e a necessidade de assegurar portabilidade nativa entre os ambientes MATLAB e GNU Octave sem depender de pacotes externos de leitura de folhas de cálculo \cite{b1}. Para esse efeito, o ficheiro original do conjunto de dados \textit{Concrete} (disponibilizado no formato \texttt{.xls}) foi previamente convertido para o formato \texttt{.csv}, preservando a precisão numérica das suas $1\,030$ linhas e $9$ colunas \cite{b1, b2}. Por sua vez, no conjunto de dados de Melbourne (já disponibilizado em \texttt{.csv}), a inspeção preliminar revelou a existência de registos com formatação textual anómala (como pontos de interrogação junto a alguns valores numéricos) que exigem limpeza durante a etapa de pré-processamento \cite{b1, b4}.
+Na inspeção inicial de ambos os ficheiros, verificou-se a integridade estrutural dos registos e a necessidade de assegurar portabilidade nativa entre os ambientes MATLAB e GNU Octave sem depender de pacotes externos de leitura de folhas de cálculo \cite{b1}. Para esse efeito, o ficheiro original do conjunto de dados \textit{Concrete} (disponibilizado no formato \texttt{.xls}) foi previamente convertido para o formato \texttt{.csv}, preservando a precisão numérica das suas $1\,030$ linhas e $9$ colunas \cite{b1, b2}. Por sua vez, no conjunto de dados de Melbourne (já disponibilizado em \texttt{.csv}), a inspeção preliminar revelou a existência de $3$ registos com formatação textual anómala (pontos de interrogação junto aos valores numéricos) que exigiram higienização na leitura \cite{b1, b4}.
 
 \subsection{Análise Exploratória dos Dados}
 Antes de qualquer transformação, realizou-se uma análise estatística e gráfica detalhada de ambos os conjuntos de dados para identificar padrões, assimetrias, relações não lineares e possíveis anomalias.
@@ -107,10 +123,12 @@ Antes de qualquer transformação, realizou-se uma análise estatística e gráf
 \subsubsection{Conjunto de Dados Concrete}
 A Tabela~\ref{tab:stats_concrete} apresenta o resumo estatístico das nove variáveis do conjunto de dados \textit{Concrete}. Observa-se que a variável alvo (\textit{Compressive Strength}) apresenta uma distribuição aproximadamente simétrica (média de $35{,}82\text{ MPa}$ e mediana de $34{,}45\text{ MPa}$), variando entre $2{,}33\text{ MPa}$ e $82{,}60\text{ MPa}$. Em contraste, diversas variáveis de entrada exibem forte assimetria positiva e elevada concentração de valores nulos: mais de metade das amostras não contém \textit{Fly Ash} (mediana de $0{,}00\text{ kg/m}^3$), enquanto \textit{Blast Furnace Slag} e \textit{Superplasticizer} também apresentam um grande volume de misturas com concentração zero (Fig.~\ref{fig:eda_conc_hist}). A variável \textit{Age} destaca-se por ser discreta e fortemente enviesada à direita (mediana de $28\text{ dias}$ contra uma média de $45{,}66\text{ dias}$ e máximo de $365\text{ dias}$).
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Resumo estatístico do conjunto de dados \textit{Concrete} ($N = 1\,030$).}
 \label{tab:stats_concrete}
-\begin{center}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrrrr@{}}
 \toprule
 \textbf{Variável} & \textbf{Mín.} & \textbf{Mediana} & \textbf{Média} & \textbf{Std} & \textbf{Máx.} \\
@@ -126,28 +144,27 @@ A Tabela~\ref{tab:stats_concrete} apresenta o resumo estatístico das nove vari�
 \textit{Strength} & $2{,}33$ & $34{,}45$ & $35{,}82$ & $16{,}71$ & $82{,}60$ \\
 \bottomrule
 \end{tabular}
-\end{center}
 \end{table}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{eda_concrete_histograms.png}
-\caption{Distribuição das variáveis de entrada e alvo.}
+\includegraphics[width=0.95\columnwidth]{eda_concrete_histograms.png}
+\caption{Distribuição das variáveis de entrada e alvo no conjunto \textit{Concrete}.}
 \label{fig:eda_conc_hist}
 \end{figure}
 
-A análise da matriz de correlação de Pearson (Fig.~\ref{fig:eda_conc_corr}) e dos diagramas de dispersão contra a resistência à compressão (Fig.~\ref{fig:eda_conc_scatter}) evidencia que nenhuma variável isolada explica linearmente o alvo. As correlações lineares mais expressivas com a resistência ocorrem com \textit{Cement} ($r = +0{,}50$), \textit{Superplasticizer} ($r = +0{,}37$), \textit{Age} ($r = +0{,}33$) e \textit{Water} ($r = -0{,}29$). Destaca-se ainda a forte correlação negativa entre \textit{Water} e \textit{Superplasticizer} ($r = -0{,}66$), refletindo o papel químico do superplastificante na redução da quantidade de água necessária na mistura. Os gráficos de dispersão (Fig.~\ref{fig:eda_conc_scatter}) confirmam relações altamente não lineares como o crescimento logarítmico da resistência com a idade de cura (\textit{Age}), justificando o uso de redes neuronais não lineares.
+A análise da matriz de correlação de Pearson (Fig.~\ref{fig:eda_conc_corr}) e dos diagramas de dispersão contra a resistência à compressão (Fig.~\ref{fig:eda_conc_scatter}) evidencia que nenhuma variável isolada explica linearmente o alvo. As correlações lineares mais expressivas com a resistência ocorrem com \textit{Cement} ($r = +0{,}50$), \textit{Superplasticizer} ($r = +0{,}37$), \textit{Age} ($r = +0{,}33$) e \textit{Water} ($r = -0{,}29$). Destaca-se ainda a forte correlação negativa entre \textit{Water} e \textit{Superplasticizer} ($r = -0{,}66$), refletindo o papel químico do superplastificante na redução da quantidade de água necessária na mistura \cite{b11}. Os gráficos de dispersão (Fig.~\ref{fig:eda_conc_scatter}) confirmam relações altamente não lineares, como o crescimento logarítmico da resistência com a idade de cura (\textit{Age}), justificando o uso de redes neuronais não lineares \cite{b3}.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{eda_concrete_corr.png}
-\caption{Matriz de correlação de Pearson entre todas as variáveis do conjunto de dados \textit{Concrete}.}
+\includegraphics[width=0.88\columnwidth]{eda_concrete_corr.png}
+\caption{Matriz de correlação de Pearson entre todas as variáveis do conjunto \textit{Concrete}.}
 \label{fig:eda_conc_corr}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{eda_concrete_scatter.png}
+\includegraphics[width=0.98\columnwidth]{eda_concrete_scatter.png}
 \caption{Diagramas de dispersão e coeficiente de correlação linear ($r$) de cada variável de entrada em relação à resistência à compressão (\textit{Strength}).}
 \label{fig:eda_conc_scatter}
 \end{figure}
@@ -157,59 +174,60 @@ A série temporal de temperaturas mínimas diárias em Melbourne ($N = 3\,650$) 
 
 A inspeção visual da série completa, do comportamento mensal e do ciclo anual médio (Fig.~\ref{fig:eda_melb_series}) revela uma sazonalidade anual muito pronunciada típica do hemisfério sul: os meses mais quentes ocorrem no verão (janeiro e fevereiro, com médias em torno de $15{,}0\text{--}15{,}4^{\circ}\text{C}$), enquanto os meses mais frios concentram-se no inverno (junho e julho, com médias entre $6{,}7$ e $7{,}3^{\circ}\text{C}$). Sobreposta a esta onda sazonal suave existe uma elevada variabilidade diária.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{eda_melbourne_series.png}
-\caption{Análise exploratória temporal de Melbourne: série completa ($1981\text{--}1990$), histograma de distribuição, perfil sazonal mensal e ciclo anual médio}
+\includegraphics[width=0.96\columnwidth]{eda_melbourne_series.png}
+\caption{Análise exploratória temporal de Melbourne: série completa ($1981\text{--}1990$), histograma de distribuição, perfil sazonal mensal e ciclo anual médio.}
 \label{fig:eda_melb_series}
 \end{figure}
 
-A Função de Autocorrelação (ACF), implementada de raiz até ao desfasamento (\textit{lag}) de $400\text{ dias}$ (Fig.~\ref{fig:eda_melb_acf}), confirma tanto a inércia de curto prazo como a periodicidade anual. A autocorrelação decai rapidamente nos primeiros dias (de $r = 0{,}775$ no \textit{lag} 1 para cerca de $0{,}58$ nos primeiros desfasamentos seguintes), atinge o mínimo negativo próximo do meio ciclo anual ($\text{lag} \approx 182\text{ dias}$, $r \approx -0{,}50$) e volta a atingir um pico positivo significativo em $\text{lag} \approx 365\text{ dias}$ ($r \approx +0{,}50$). O gráfico de dispersão entre $T(t)$ e $T(t+1)$ evidencia uma forte dependência linear de curto prazo ($r = 0{,}775$), mas com dispersão considerável causada pelo ruído meteorológico diário.
+A Função de Autocorrelação (ACF), implementada de raiz até ao desfasamento (\textit{lag}) de $400\text{ dias}$ (Fig.~\ref{fig:eda_melb_acf}), confirma tanto a inércia de curto prazo como a periodicidade anual \cite{b10}. A autocorrelação decai rapidamente nos primeiros dias (de $r = 0{,}775$ no \textit{lag} 1 para cerca de $0{,}58$ nos primeiros desfasamentos seguintes), atinge o mínimo negativo próximo do meio ciclo anual ($\text{lag} \approx 182\text{ dias}$, $r \approx -0{,}50$) e volta a atingir um pico positivo significativo em $\text{lag} \approx 365\text{ dias}$ ($r \approx +0{,}50$). O gráfico de dispersão entre $T(t)$ e $T(t+1)$ evidencia uma forte dependência linear de curto prazo ($r = 0{,}775$), mas com dispersão considerável causada pelo ruído meteorológico diário.
 
 Por fim, a verificação de anomalias e mudanças abruptas (Fig.~\ref{fig:eda_melb_acf}, direita) mostrou que apenas $2$ registos apresentam o valor limite de $0{,}0^{\circ}\text{C}$ (plausíveis no inverno de Melbourne) e que as variações absolutas consecutivas $|T(t+1)-T(t)|$ ultrapassam os $10^{\circ}\text{C}$ em apenas $4$ ocasiões ao longo dos $10$ anos, sendo o salto máximo de $12{,}70^{\circ}\text{C}$ (entre 26 e 27 de novembro de 1984). Não foram identificadas quebras estruturais permanentes na média ou variância da série ao longo da década analisada.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{eda_melbourne_acf_scatter.png}
+\includegraphics[width=0.98\columnwidth]{eda_melbourne_acf_scatter.png}
 \caption{Função de Autocorrelação (ACF), diagrama de dispersão $T(t)$ contra $T(t+1)$ e magnitude dos saltos térmicos diários $|T(t+1)-T(t)|$.}
 \label{fig:eda_melb_acf}
 \end{figure}
 
 \subsection{Pré-processamento e Feature Engineering}
 
-Com base nas evidências recolhidas durante a inspeção inicial e a análise exploratória, aplicaram-se transformações específicas a cada conjunto de dados com o objetivo de melhorar a capacidade de representação das redes neuronais, mantendo estritamente o mesmo vetor de atributos para todas as arquiteturas e algoritmos avaliados dentro de cada problema.
+Com base nas evidências recolhidas durante a inspeção inicial e a análise exploratória, aplicaram-se transformações específicas a cada conjunto de dados com o objetivo de melhorar a capacidade de representação das redes neuronais, mantendo estritamente o mesmo vetor de atributos para todas as arquiteturas e algoritmos avaliados dentro de cada problema \cite{b1}.
 
 \subsubsection{Concrete}
-O conjunto de dados \textit{Concrete} não apresentou valores em falta nem observações defeituosas, não exigindo imputação ou remoção de registos. Contudo, para incorporar conhecimento físico do domínio e mitigar a forte assimetria observada na idade de cura, adicionaram-se dois atributos derivados às $8$ variáveis originais:
+O conjunto de dados \textit{Concrete} não apresentou valores em falta nem observações defeituosas, não exigindo imputação ou remoção de registos. Contudo, para incorporar conhecimento físico do domínio e mitigar a forte assimetria observada na idade de cura, adicionaram-se dois atributos derivados às $8$ variáveis originais ($d = 10$):
 \begin{itemize}
-    \item \textbf{Rácio Água/Cimento (\textit{Water/Cement Ratio}):} Definido pela razão $\text{Water}/\text{Cement}$. Na engenharia de materiais, a lei de Abrams estabelece que a relação água/cimento é o principal fator determinante da porosidade da pasta hidratada e, consequentemente, da resistência mecânica final do betão.
-    \item \textbf{Logaritmo da Idade (\textit{$\ln(Age)$}):} Como evidenciado pelos diagramas de dispersão da EDA, o ganho de resistência ocorre de forma acelerada nos primeiros dias de cura ($1$ a $28\text{ dias}$) e estabiliza gradualmente até aos $365\text{ dias}$. A transformação logarítmica lineariza esta curva de hidratação e reduz o enviesamento à direita da distribuição original.
+    \item \textbf{Rácio Água/Cimento (\textit{Water/Cement Ratio}):} Definido pela razão $\text{Water}/\text{Cement}$. Na engenharia de materiais, a lei de Abrams estabelece que a relação água/cimento é o principal fator determinante da porosidade da pasta hidratada e, consequentemente, da resistência mecânica final do betão \cite{b11}.
+    \item \textbf{Logaritmo da Idade ($\ln(\text{Age})$):} Como evidenciado pelos diagramas de dispersão da EDA, o ganho de resistência ocorre de forma acelerada nos primeiros dias de cura ($1$ a $28\text{ dias}$) e estabiliza gradualmente até aos $365\text{ dias}$ \cite{b3, b11}. A transformação logarítmica lineariza esta curva de hidratação e reduz o enviesamento à direita da distribuição original.
 \end{itemize}
 
 \subsubsection{Melbourne}
-Na etapa de leitura do ficheiro de Melbourne, os $3$ registos que continham o caractere anómalo "\texttt{?}" junto ao valor numérico foram higienizados e convertidos para vírgula flutuante, resultando numa série contínua de $3\,650$ observações sem valores em falta.
+Na etapa de leitura do ficheiro de Melbourne, os $3$ registos que continham o caractere anómalo ``\texttt{?}'' junto ao valor numérico foram higienizados e convertidos para vírgula flutuante, resultando numa série contínua de $3\,650$ observações sem valores em falta.
 
-Para formular a previsão a um passo no futuro ($T(t+1)$) como um problema de aprendizagem supervisionada, cada vetor de entrada no instante $t$ foi construído a partir de uma janela temporal deslizante dos $p = 7$ valores mais recentes da série $[T(t), T(t-1), \dots, T(t-6)]$, complementada por duas componentes cíclicas de calendário:
+Para formular a previsão a um passo no futuro ($T(t+1)$) como um problema de aprendizagem supervisionada, cada vetor de entrada no instante $t$ foi construído a partir de uma janela temporal deslizante dos $p = 7$ valores mais recentes da série $[T(t), T(t-1), \dots, T(t-6)]$, complementada por duas componentes cíclicas de calendário ($d = 9$):
 \begin{equation}
-\mathbf{x}_t = \left[ T(t), \dots, T(t-6), \sin\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right), \cos\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right) \right]
+\mathbf{x}_t = \left[ T(t), \dots, T(t-6), \sin\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right), \cos\!\left(\frac{2\pi \cdot \text{doy}_t}{365}\right) \right]^\top
 \end{equation}
-onde $\text{doy}_t \in \{1, \dots, 365\}$ representa o dia do ano correspondente à data $t$. A escolha da janela $p = 7\text{ dias}$ justifica-se pela análise da Função de Autocorrelação (ACF), que exibe o decaimento mais acentuado da dependência probabilística de curto prazo durante a primeira semana, permitindo capturar a dinâmica meteorológica recente sem aumentar excessivamente a dimensionalidade da entrada ($d = 9$). Por sua vez, a codificação trigonométrica ($\sin$ e $\cos$) fornece ao modelo informação contínua e periódica sobre a fase do ciclo sazonal anual (evitando descontinuidades artificiais entre 31 de dezembro e 1 de janeiro), o que ajuda a compensar o facto de uma janela curta de $7\text{ dias}$ não observar diretamente a oscilação de $365\text{ dias}$. Este procedimento gerou $3\,643$ amostras completas sem qualquer fuga de informação futura (\textit{data leakage}).
+onde $\text{doy}_t \in \{1, \dots, 365\}$ representa o dia do ano correspondente à data $t$. A escolha da janela $p = 7\text{ dias}$ justifica-se pela análise da Função de Autocorrelação (ACF), que exibe o decaimento mais acentuado da dependência estocástica de curto prazo durante a primeira semana \cite{b10}, permitindo capturar a dinâmica meteorológica recente sem aumentar excessivamente a dimensionalidade da entrada. Por sua vez, a codificação trigonométrica ($\sin$ e $\cos$) fornece ao modelo informação contínua e periódica sobre a fase do ciclo sazonal anual (evitando descontinuidades artificiais entre 31 de dezembro e 1 de janeiro), compensando o facto de uma janela curta de $7\text{ dias}$ não observar diretamente a oscilação de $365\text{ dias}$. Este procedimento gerou $3\,643$ amostras completas sem qualquer fuga de informação futura (\textit{data leakage}).
 
 \subsubsection{Normalização}
 Dado que as variáveis de entrada apresentam ordens de grandeza muito distintas (por exemplo, os agregados no \textit{Concrete} atingem $1\,145\text{ kg/m}^3$ enquanto os atributos trigonométricos variam em $[-1, 1]$), aplicou-se a normalização \textit{Z-score} (média nula e desvio padrão unitário) a todas as entradas e à variável alvo:
 \begin{equation}
 z = \frac{x - \mu_{\text{treino}}}{\sigma_{\text{treino}}}
 \end{equation}
-Para evitar rigorosamente \textit{data leakage}, os parâmetros $\mu_{\text{treino}}$ e $\sigma_{\text{treino}}$ foram calculados exclusivamente sobre o subconjunto de treino após a partição dos dados, sendo posteriormente aplicados aos subconjuntos de validação e de teste. Para o cálculo das métricas finais de desempenho (MSE, RMSE e MAE), as previsões da rede são revertidas para as unidades físicas originais através da transformação inversa $\hat{y} = \hat{z} \cdot \sigma_{\text{treino}} + \mu_{\text{treino}}$.
+Para evitar rigorosamente \textit{data leakage}, os parâmetros $\mu_{\text{treino}}$ e $\sigma_{\text{treino}}$ foram calculados exclusivamente sobre o subconjunto de treino após a partição dos dados, sendo posteriormente aplicados aos subconjuntos de validação e de teste \cite{b1}. Para o cálculo das métricas finais de desempenho (MSE, RMSE e MAE), as previsões da rede são revertidas para as unidades físicas originais através da transformação inversa $\hat{y} = \hat{z} \cdot \sigma_{\text{treino}} + \mu_{\text{treino}}$.
 
 \subsection{Particionamento dos Dados}
 
-Ambos os conjuntos de dados foram divididos em subconjuntos de treino ($70\%$), validação ($15\%$) e teste ($15\%$). De modo a garantir que toda a variabilidade observada entre as $30$ repetições finais decorra exclusivamente da inicialização aleatória dos pesos e da ordenação dos \textit{mini-batches}, as partições foram mantidas rigorosamente fixas durante todo o estudo, recorrendo à \textit{seed} fixa $42$). A Tabela~\ref{tab:splits} sintetiza a dimensão e cobertura de cada partição.
+Ambos os conjuntos de dados foram divididos em subconjuntos de treino ($70\%$), validação ($15\%$) e teste ($15\%$). De modo a garantir que toda a variabilidade observada entre as $30$ repetições finais decorra exclusivamente da inicialização aleatória dos pesos e da ordenação dos \textit{mini-batches}, as partições foram mantidas rigorosamente fixas durante todo o estudo, recorrendo à \textit{seed} fixa $42$ \cite{b1}. A Tabela~\ref{tab:splits} sintetiza a dimensão e cobertura de cada partição.
 
-\begin{table}[H]
-\caption{Resumo da partição dos conjuntos de dados.}
+\begin{table}[htbp]
+\caption{Resumo da partição dos conjuntos de dados ($70\% / 15\% / 15\%$).}
 \label{tab:splits}
-\begin{center}
+\centering
+\scriptsize
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Dataset} & \textbf{Estratégia} & \textbf{Treino} & \textbf{Validação} & \textbf{Teste} \\
@@ -218,11 +236,10 @@ Ambos os conjuntos de dados foram divididos em subconjuntos de treino ($70\%$), 
 \textit{Melbourne} & Cronológica & $2\,550$ & $546$ & $547$ \\
 \bottomrule
 \end{tabular}
-\end{center}
 \end{table}
 
-\subsubsection{Partição Cronológica - Melbourne}
-Para a série temporal de Melbourne ($3\,643$ amostras após a construção das janelas com $p=7$), adotou-se uma divisão estritamente cronológica em blocos :
+\subsubsection{Partição Cronológica -- Melbourne}
+Para a série temporal de Melbourne ($3\,643$ amostras após a construção das janelas com $p=7$), adotou-se uma divisão estritamente cronológica em blocos contíguos \cite{b10}:
 \begin{itemize}
     \item \textbf{Treino ($70\%$, $2\,550$ amostras):} 8 de janeiro de 1981 a 2 de janeiro de 1988;
     \item \textbf{Validação ($15\%$, $546$ amostras):} 3 de janeiro de 1988 a 2 de julho de 1989;
@@ -230,72 +247,64 @@ Para a série temporal de Melbourne ($3\,643$ amostras após a construção das 
 \end{itemize}
 Esta estratégia preserva a ordem causal dos acontecimentos e impede qualquer fuga de informação futura (\textit{data leakage}) para o conjunto de treino, para as estatísticas do normalizador (\textit{scaler}) ou para as janelas desfasadas, simulando um cenário realista de previsão operacional.
 
-\subsubsection{Partição Aleatória e Discussão - Concrete}
+\subsubsection{Partição Aleatória e Discussão -- Concrete}
 No conjunto de dados \textit{Concrete} ($1\,030$ observações), aplicou-se uma partição aleatória uniforme em $721$ amostras de treino, $155$ de validação e $154$ de teste.
 
-Contudo, uma análise estrutural das $8$ variáveis de entrada revela uma limitação metodológica importante neste tipo de partição. Embora existam $1\,030$ registos, a inspeção das combinações dos $7$ ingredientes químicos e físicos (excluindo a idade de cura) mostra que existem apenas $428$ receitas distintas de betão - ou seja, a mesma formulação foi ensaiada em laboratório múltiplas vezes em diferentes idades (por exemplo, aos $3$, $7$, $28$ e $90\text{ dias}$). Com a divisão puramente aleatória por linha, verificou-se que $88$ das receitas presentes no conjunto de teste ($68{,}8\%$ das formulações do teste) também ocorrem no conjunto de treino noutras idades de cura.
+Contudo, uma análise estrutural das $8$ variáveis de entrada revela uma limitação metodológica importante neste tipo de partição \cite{b1}. Embora existam $1\,030$ registos, a inspeção das combinações dos $7$ ingredientes químicos e físicos (excluindo a idade de cura) mostra que existem apenas $428$ receitas distintas de betão -- ou seja, a mesma formulação foi ensaiada em laboratório múltiplas vezes em diferentes idades (por exemplo, aos $3$, $7$, $28$ e $90\text{ dias}$). Com a divisão puramente aleatória por linha, verificou-se que $88$ das receitas presentes no conjunto de teste ($68{,}8\%$ das formulações do teste) também ocorrem no conjunto de treino noutras idades de cura.
 
-Consequentemente, esta partição aleatória é adequada apenas se o objetivo prático for estimar a evolução temporal da resistência de formulações de betão já parcialmente conhecidas pelo modelo (\textit{interpolação na curva de cura}). Pelo contrário, se o objetivo de engenharia for prever a resistência de uma \textit{nova formulação química nunca antes testada}, a divisão aleatória introduz (\textit{group leakage}), levando a uma estimativa otimista do erro de generalização.
+Consequentemente, esta partição aleatória é adequada apenas se o objetivo prático for estimar a evolução temporal da resistência de formulações de betão já parcialmente conhecidas pelo modelo (\textit{interpolação na curva de cura}). Pelo contrário, se o objetivo de engenharia for prever a resistência de uma \textit{nova formulação química nunca antes testada}, a divisão aleatória introduz fuga de informação agrupada (\textit{group leakage}), levando a uma estimativa otimista do erro de generalização.
 
 \subsection{Implementação e Verificação}
 
-Toda a biblioteca de redes neuronais e algoritmos de otimização foi desenvolvida de raiz em linguagem MATLAB compatível com GNU Octave, sem recurso a \textit{toolboxes} externas de aprendizagem automática. A estrutura modular do código obedece rigorosamente à arquitetura exigida: o ficheiro \texttt{ann\_lib.m} encapsula todas as rotinas internas e devolve uma estrutura de apontadores para funções, enquanto o script \texttt{main\_assignment2.m} orquestra a execução experimental.
+Toda a biblioteca de redes neuronais e algoritmos de otimização foi desenvolvida de raiz em linguagem MATLAB compatível com GNU Octave, sem recurso a \textit{toolboxes} externas de aprendizagem automática \cite{b1}. A estrutura modular do código obedece rigorosamente à arquitetura exigida: o ficheiro \texttt{ann\_lib.m} encapsula todas as rotinas internas e devolve uma estrutura de apontadores para funções, enquanto o script \texttt{main\_assignment2.m} orquestra a execução experimental \cite{b1}.
 
 \subsubsection{Arquiteturas, Ativação e Inicialização}
-Foram implementadas três redes neuronais \textit{feed-forward} totalmente ligadas com um único neurónio de saída linear e função de custo de erro quadrático médio (MSE), partilhando uma base de $N = 10$ neurónios nas camadas escondidas:
+Foram implementadas três redes neuronais \textit{feed-forward} totalmente ligadas com um único neurónio de saída linear e função de custo de erro quadrático médio (MSE), partilhando uma base de $N = 10$ neurónios nas camadas escondidas \cite{b1, b6}:
 \begin{itemize}
     \item \textbf{Arquitetura A (\textit{Reference}):} $1$ camada escondida com $10$ neurónios ($121$ parâmetros para $d=10$ no \textit{Concrete}; $111$ parâmetros para $d=9$ em \textit{Melbourne});
     \item \textbf{Arquitetura B (\textit{Wide}):} $1$ camada escondida com $100$ neurónios ($1\,201$ parâmetros no \textit{Concrete}; $1\,101$ em \textit{Melbourne});
     \item \textbf{Arquitetura C (\textit{Deep}):} $10$ camadas escondidas com $10$ neurónios cada ($1\,111$ parâmetros no \textit{Concrete}; $1\,101$ em \textit{Melbourne}).
 \end{itemize}
 
-Em todas as configurações utilizou-se a tangente hiperbólica ($\tanh$) como função de ativação das camadas escondidas, devido à sua simetria em torno da origem ($[-1, 1]$) e gradientes bem comportados para dados normalizados com média nula. Os pesos $\mathbf{W}^{(l)}$ de cada camada foram inicializados segundo o esquema uniforme de Glorot/Xavier, $\mathcal{U}\!\left[-\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}, \sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}\right]$, e os enviesamentos (\textit{biases}) $\mathbf{b}^{(l)}$ a zero, mantendo a variância das ativações estável ao longo das camadas. Para facilitar a integração com otimizadores vetoriais (como o BFGS), todos os parâmetros foram empacotados num único vetor coluna $\boldsymbol{\theta} \in \mathbb{R}^P$. O Listagem~\ref{lst:loss_grad} ilustra a implementação da retropropagação (\textit{backpropagation}) utilizada para o cálculo exato do custo e do gradiente.
+Em todas as configurações utilizou-se a tangente hiperbólica ($\tanh$) como função de ativação das camadas escondidas, devido à sua simetria em torno da origem ($[-1, 1]$) e gradientes bem comportados para dados normalizados com média nula \cite{b8}. Os pesos $\mathbf{W}^{(l)}$ de cada camada foram inicializados segundo o esquema uniforme de Glorot e Bengio \cite{b8}, $\mathcal{U}\!\left[-\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}, \sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}\right]$, e os enviesamentos (\textit{biases}) $\mathbf{b}^{(l)}$ a zero, mantendo a variância das ativações estável ao longo das camadas. Para facilitar a integração com otimizadores vetoriais (como o BFGS \cite{b9}), todos os parâmetros foram empacotados num único vetor coluna $\boldsymbol{\theta} \in \mathbb{R}^P$. O Listagem~\ref{lst:loss_grad} ilustra a implementação da retropropagação (\textit{backpropagation}) \cite{b7} utilizada para o cálculo exato do custo e do gradiente.
 
 \begin{lstlisting}[caption={Excerto de \texttt{ann\_lib.m}: cálculo do MSE e retropropagação do gradiente.},label={lst:loss_grad}]
 function [loss, grad] = loss_grad(theta, layers, X, y)
     N = size(X, 1);
-    [y_hat, cache] = forward_pass(theta, layers, X);
+    [y_hat, A, W_cell] = forward_pass(theta, layers, X);
     diff = y_hat - y;
-    loss = mean(diff .^ 2); % Erro Quadratico Medio
+    loss = (diff' * diff) / N;
 
     num_layers = length(layers) - 1;
     grad = zeros(size(theta));
-
-    delta = (2.0 / N) * diff; % Derivada na saida linear
-
-    % Ponteiro para preencher grad de trás para a frente
+    delta = (2.0 / N) * diff;
     idx_end = length(theta);
     for l = num_layers:-1:1
-        A_prev = cache.A{l};
-        W_curr = cache.W{l};
-        dW = A_prev' * delta;
+        dW = A{l}' * delta;
         db = sum(delta, 1);
-        n_b = length(db);
-        n_w = numel(dW);
-
-        grad(idx_end - n_b + 1 : idx_end) = db(:);
-        idx_end = idx_end - n_b;
-        grad(idx_end - n_w + 1 : idx_end) = dW(:);
-        idx_end = idx_end - n_w;
-
+        grad(idx_end-length(db)+1:idx_end) = db(:);
+        idx_end = idx_end - length(db);
+        grad(idx_end-numel(dW)+1:idx_end) = dW(:);
+        idx_end = idx_end - numel(dW);
         if l > 1
-            delta = (delta * W_curr') .* (1.0 - cache.A{l} .^ 2);
+            delta = (delta * W_cell{l}') .* (1.0 - A{l}.^2);
         end
     end
 end
 \end{lstlisting}
 
 \subsubsection{Verificação Numérica dos Gradientes}
-Para validar a exatidão matemática da implementação analítica de \texttt{loss\_grad}, o gradiente analítico $\mathbf{g}_{\text{ana}}$ foi comparado contra uma aproximação numérica por diferenças finitas centradas:
+Para validar a exatidão matemática da implementação analítica de \texttt{loss\_grad}, o gradiente analítico $\mathbf{g}_{\text{ana}}$ foi comparado contra uma aproximação numérica por diferenças finitas centradas \cite{b1, b9}:
 \begin{equation}
 g_{\text{num}, i} = \frac{\mathcal{L}(\boldsymbol{\theta} + \epsilon \mathbf{e}_i) - \mathcal{L}(\boldsymbol{\theta} - \epsilon \mathbf{e}_i)}{2\epsilon}, \quad \epsilon = 10^{-6}
 \end{equation}
-avaliada em todos os parâmetros $i \in \{1, \dots, P\}$ das três arquiteturas (com a seed fixa $42$ sobre um subconjunto de treino). Conforme apresentado na Tabela~\ref{tab:grad_check}, os erros relativos máximos situaram-se na ordem de $10^{-8}$ a $10^{-7}$, confirmando a precisão numérica da retropropagação em todas as configurações.
+avaliada em todos os parâmetros $i \in \{1, \dots, P\}$ das três arquiteturas (com a \textit{seed} fixa $42$ sobre um subconjunto de treino). Conforme apresentado na Tabela~\ref{tab:grad_check}, os erros relativos máximos situaram-se na ordem de $10^{-8}$ a $10^{-7}$, confirmando a precisão numérica da retropropagação em todas as configurações.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \caption{Verificação do gradiente analítico por diferenças finitas centradas nas três arquiteturas ($d = 10$).}
 \label{tab:grad_check}
-\begin{center}
+\centering
+\scriptsize
 \begin{tabular}{@{}llcc@{}}
 \toprule
 \textbf{ID} & \textbf{Arquitetura} & \textbf{Parâmetros ($P$)} & \textbf{Erro Relativo Máx.} \\
@@ -305,26 +314,26 @@ B & \textit{Wide} ($1 \times 100$) & $1\,201$ & $1{,}389 \times 10^{-7}$ \\
 C & \textit{Deep} ($10 \times 10$) & $1\,111$ & $3{,}437 \times 10^{-7}$ \\
 \bottomrule
 \end{tabular}
-\end{center}
 \end{table}
 
 \subsection{Ajuste de Hiperparâmetros}
 
-Para assegurar uma comparação justa e livre de viés entre os otimizadores, ajustou-se a taxa de aprendizagem ($\eta$) do \textit{Mini-batch Gradient Descent} e do \textit{Adam} exclusivamente com base no erro quadrático médio (MSE) obtido no conjunto de validação, separadamente para cada conjunto de dados e arquitetura.
+Para assegurar uma comparação justa e livre de viés entre os otimizadores, ajustou-se a taxa de aprendizagem ($\eta$) do \textit{Mini-batch Gradient Descent} e do \textit{Adam} exclusivamente com base no erro quadrático médio (MSE) obtido no conjunto de validação, separadamente para cada conjunto de dados e arquitetura \cite{b1}.
 
 \subsubsection{Grelha Logarítmica e Seleção para GD e Adam}
-Em ambos os algoritmos fixou-se o tamanho do \textit{mini-batch} em $B = 32$ amostras (reembaralhadas a cada época), mantendo os parâmetros de momento do Adam nos seus valores padrão propostos por Kingma e Ba \cite{b5} ($\beta_1 = 0{,}9$, $\beta_2 = 0{,}999$ e $\epsilon = 10^{-8}$). Avaliou-se uma grelha logarítmica de $6$ valores espaçados uniformemente no intervalo $\eta \in [10^{-4}, 10^{-1}]$.
-Para mitigar o efeito da inicialização aleatória dos pesos, cada configuração foi executada $5$ vezes (com seeds distintas) durante $60$ épocas, selecionando-se o valor de $\eta$ que minimizou a mediana do menor MSE de validação observado ao longo do treino.
+Em ambos os algoritmos fixou-se o tamanho do \textit{mini-batch} em $B = 32$ amostras (reembaralhadas a cada época), mantendo os parâmetros de momento do Adam nos seus valores padrão propostos por Kingma e Ba \cite{b5} ($\beta_1 = 0{,}9$, $\beta_2 = 0{,}999$ e $\epsilon = 10^{-8}$). Avaliou-se uma grelha logarítmica de $6$ valores espaçados uniformemente no intervalo $\eta \in [10^{-4}, 10^{-1}]$. Para mitigar o efeito da inicialização aleatória dos pesos, cada configuração foi executada $5$ vezes (com \textit{seeds} distintas) durante $60$ épocas, selecionando-se o valor de $\eta$ que minimizou a mediana do menor MSE de validação observado ao longo do treino.
 
-As Figuras ~\ref{fig:tuning_conc} e \ref{fig:tuning_melb} ilustram a sensibilidade dos algoritmos à taxa de aprendizagem, e a Tabela~\ref{tab:best_lrs} apresenta os valores ótimos selecionados. Verifica-se que o \textit{Mini-batch GD} exige taxas elevadas ($\eta \in \{2{,}51 \times 10^{-2},\, 1{,}00 \times 10^{-1}\}$) para progredir eficazmente dentro do orçamento de épocas, enquanto o \textit{Adam} atinge o seu ótimo em ordens de grandeza inferiores ($3{,}98 \times 10^{-4}$ a $2{,}51 \times 10^{-2}$) graças à adaptação individual do passo por parâmetro. Na arquitetura profunda (\textbf{C}, com $10$ camadas escondidas), o Adam revela acentuada sensibilidade a passos elevados, observando-se uma forte instabilidade para $\eta \ge 2{,}51 \times 10^{-2}$ em ambos os problemas, justificando a escolha de \textit{learning rates} mais conservadoras ($\eta = 6{,}31 \times 10^{-3}$ no \textit{Concrete} e $\eta = 3{,}98 \times 10^{-4}$ em \textit{Melbourne}).
+As Figuras~\ref{fig:tuning_conc} e \ref{fig:tuning_melb} ilustram a sensibilidade dos algoritmos à taxa de aprendizagem, e a Tabela~\ref{tab:best_lrs} apresenta os valores ótimos selecionados. Verifica-se que o \textit{Mini-batch GD} exige taxas elevadas ($\eta \in \{2{,}51 \times 10^{-2},\, 1{,}00 \times 10^{-1}\}$) para progredir eficazmente dentro do orçamento de épocas, enquanto o \textit{Adam} atinge o seu ótimo em ordens de grandeza inferiores ($3{,}98 \times 10^{-4}$ a $2{,}51 \times 10^{-2}$) graças à adaptação individual do passo por parâmetro \cite{b5}. Na arquitetura profunda (\textbf{C}, com $10$ camadas escondidas), o Adam revela acentuada sensibilidade a passos elevados, observando-se uma forte instabilidade para $\eta \ge 2{,}51 \times 10^{-2}$ em ambos os problemas, justificando a escolha de \textit{learning rates} mais conservadoras ($\eta = 6{,}31 \times 10^{-3}$ no \textit{Concrete} e $\eta = 3{,}98 \times 10^{-4}$ em \textit{Melbourne}).
 
-\begin{table}[H]
-\caption{Taxas de aprendizagem ($\eta$) selecionadas na validação e respetiva mediana do MSE de validação (em unidades escaladas).}
+\begin{table}[htbp]
+\caption{Taxas de aprendizagem ($\eta$) selecionadas na validação e mediana do MSE de validação (em unidades escaladas).}
 \label{tab:best_lrs}
-\begin{center}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llcccc@{}}
 \toprule
-\textbf{Dataset} & \textbf{Arq.} & \textbf{$\eta_{\text{GD}}$} & \textbf{MSE(GD)} & \textbf{$\eta_{\text{Adam}}$} & \textbf{MSE(Adam)} \\
+\textbf{Dataset} & \textbf{Arq.} & \textbf{$\eta_{\text{GD}}$} & \textbf{MSE (GD)} & \textbf{$\eta_{\text{Adam}}$} & \textbf{MSE (Adam)} \\
 \midrule
 \textit{Concrete} & A & $1{,}00 \times 10^{-1}$ & $0{,}0988$ & $2{,}51 \times 10^{-2}$ & $0{,}0931$ \\
 \textit{Concrete} & B & $1{,}00 \times 10^{-1}$ & $0{,}0988$ & $6{,}31 \times 10^{-3}$ & $0{,}0823$ \\
@@ -335,53 +344,47 @@ As Figuras ~\ref{fig:tuning_conc} e \ref{fig:tuning_melb} ilustram a sensibilida
 \textit{Melbourne} & C & $2{,}51 \times 10^{-2}$ & $0{,}3169$ & $3{,}98 \times 10^{-4}$ & $0{,}3095$ \\
 \bottomrule
 \end{tabular}
-\end{center}
 \end{table}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{tuning_concrete.png}
-\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para o conjunto de dados \textit{Concrete} (mediana de $5$ repetições em escala logarítmica).}
+\includegraphics[width=0.98\columnwidth]{tuning_concrete.png}
+\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para \textit{Concrete} (mediana de $5$ repetições em escala logarítmica).}
 \label{fig:tuning_conc}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=\columnwidth]{tuning_melbourne.png}
-\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para o conjunto de dados \textit{Melbourne} (mediana de $5$ repetições em escala logarítmica).}
+\includegraphics[width=0.98\columnwidth]{tuning_melbourne.png}
+\caption{Curvas de ajuste da taxa de aprendizagem ($\eta$) na validação para \textit{Melbourne} (mediana de $5$ repetições em escala logarítmica).}
 \label{fig:tuning_melb}
 \end{figure}
 
 \subsubsection{Configuração do Algoritmo BFGS}
-Por se tratar de um método Quasi-Newton de segunda ordem executado sobre o conjunto de treino completo, o algoritmo BFGS dispensa taxa de aprendizagem fixa, determinando o comprimento do passo $\alpha_k$ dinamicamente através de uma pesquisa linear segundo as condições fortes de Wolfe:
+Por se tratar de um método Quasi-Newton de segunda ordem executado sobre o conjunto de treino completo, o algoritmo BFGS dispensa taxa de aprendizagem fixa, determinando o comprimento do passo $\alpha_k$ dinamicamente através de uma pesquisa linear segundo as condições fortes de Wolfe \cite{b9}:
 \begin{itemize}
-    \item \textbf{Condição de decréscimo suficiente (Armijo):} constante $c_1 = 10^{-4}$;
-    \item \textbf{Condição de curvatura:} constante $c_2 = 0{,}9$, com um limite máximo de $15$ avaliações por pesquisa linear e atualização da aproximação da inversa da Hessiana $\mathbf{H}_k$ protegida contra curvatura não positiva ($\mathbf{s}_k^\top \mathbf{y}_k > 10^{-14}$);
-    \item \textbf{Critérios de paragem:} o algoritmo termina antecipadamente caso a norma infinito do gradiente atinja $\|\nabla \mathcal{L}(\boldsymbol{\theta}_k)\|_\infty \le 10^{-6}$ ou a norma do passo seja inferior a $\|\mathbf{s}_k\|_2 < 10^{-12}$; caso contrário, prossegue até esgotar o orçamento máximo de avaliações de gradiente (\textit{epoch-equivalents}) definido para as experiências finais.
+    \item \textbf{Condição de decréscimo suficiente (Armijo):} constante $c_1 = 10^{-4}$ \cite{b9};
+    \item \textbf{Condição de curvatura:} constante $c_2 = 0{,}9$, com um limite máximo de $15$ avaliações por pesquisa linear e atualização da aproximação da inversa da Hessiana $\mathbf{H}_k$ protegida contra curvatura não positiva ($\mathbf{s}_k^\top \mathbf{y}_k > 10^{-14}$) \cite{b9};
+    \item \textbf{Critérios de paragem:} o algoritmo termina antecipadamente caso a norma infinito do gradiente atinja $\|\nabla \mathcal{L}(\boldsymbol{\theta}_k)\|_\infty \le 10^{-6}$ ou a norma do passo seja inferior a $\|\mathbf{s}_k\|_2 < 10^{-12}$; caso contrário, prossegue até esgotar o orçamento máximo de avaliações de gradiente (\textit{epoch-equivalents}) definido para as experiências finais \cite{b1, b9}.
 \end{itemize}
 
 \subsection{Experimentos Finais}
 
-Após a fixação de todos os hiperparâmetros na etapa de validação, procedeu-se à avaliação experimental sistemática de todas as $18$ combinações possíveis ($2\text{ conjuntos de dados} \times 3\text{ arquiteturas} \times 3\text{ algoritmos de treino}$).
+Após a fixação de todos os hiperparâmetros na etapa de validação, procedeu-se à avaliação experimental sistemática de todas as $18$ combinações possíveis ($2\text{ conjuntos de dados} \times 3\text{ arquiteturas} \times 3\text{ algoritmos de treino}$) \cite{b1}.
 
 \subsubsection{Protocolo de Emparelhamento e Orçamento Computacional}
-Para avaliar a sensibilidade dos modelos às condições iniciais e garantir rigor estatístico, cada uma das $18$ configurações foi executada $30$ vezes com inicializações aleatórias distintas, utilizando as seeds $k \in \{1, 2, \dots, 30\}$. De modo a assegurar uma comparação emparelhada, para um dado conjunto de dados e arquitetura, a execução $k$ partilhou rigorosamente o mesmo vetor de pesos iniciais $\boldsymbol{\theta}_0^{(k)}$ entre os três algoritmos (\textit{Mini-batch GD}, \textit{BFGS} e \textit{Adam}).
+Para avaliar a sensibilidade dos modelos às condições iniciais e garantir rigor estatístico, cada uma das $18$ configurações foi executada $30$ vezes com inicializações aleatórias distintas, utilizando as \textit{seeds} $k \in \{1, 2, \dots, 30\}$. De modo a assegurar uma comparação emparelhada, para um dado conjunto de dados e arquitetura, a execução $k$ partilhou rigorosamente o mesmo vetor de pesos iniciais $\boldsymbol{\theta}_0^{(k)}$ entre os três algoritmos (\textit{Mini-batch GD}, \textit{BFGS} e \textit{Adam}) \cite{b1}.
 
-Para equiparar o esforço computacional entre métodos probabilísticos (\textit{mini-batch}) e métodos determinísticos (\textit{full-batch}), estabeleceu-se um orçamento idêntico medido em \textit{epoch-equivalents} (onde $1\text{ epoch-equivalent}$ corresponde a uma passagem completa sobre o conjunto de treino ou a uma avaliação do gradiente completo, incluindo todas as avaliações internas realizadas durante a pesquisa linear do BFGS):
+Para equiparar o esforço computacional entre métodos estocásticos (\textit{mini-batch}) e métodos determinísticos (\textit{full-batch}), estabeleceu-se um orçamento idêntico medido em \textit{epoch-equivalents} (onde $1\text{ epoch-equivalent}$ corresponde a uma passagem completa sobre o conjunto de treino ou a uma avaliação do gradiente completo, incluindo todas as avaliações internas realizadas durante a pesquisa linear do BFGS) \cite{b1}:
 \begin{itemize}
     \item \textbf{Concrete:} orçamento máximo de $250\text{ epoch-equivalents}$ por execução ($B = 32$ nos algoritmos estocásticos);
     \item \textbf{Melbourne:} orçamento máximo de $200\text{ epoch-equivalents}$ por execução ($B = 32$ nos algoritmos estocásticos).
 \end{itemize}
-Em todas as execuções e algoritmos, aplicou-se exatamente o mesmo critério de seleção de modelo: ao longo do treino, monitorizou-se o MSE no conjunto de validação e reteve-se o vetor de parâmetros $\boldsymbol{\theta}^*$ correspondente ao menor erro de validação observado.
+Em todas as execuções e algoritmos, aplicou-se exatamente o mesmo critério de seleção de modelo: ao longo do treino, monitorizou-se o MSE no conjunto de validação e reteve-se o vetor de parâmetros $\boldsymbol{\theta}^*$ correspondente ao menor erro de validação observado \cite{b1}.
 
 \subsubsection{Registo de Métricas e Avaliação Única no Teste}
-Para cada uma das $540$ execuções totais ($18\text{ combinações} \times 30\text{ repetições}$), registaram-se:
-\begin{enumerate}
-    \item As curvas de evolução do erro de treino e de validação (MSE em unidades normalizadas) a cada \textit{epoch-equivalent};
-    \item O número total de avaliações completas de gradiente efetuadas e o tempo de execução decorrido em segundos;
-    \item O desempenho final do modelo selecionado sobre o conjunto de teste, revertido para as unidades físicas originais do alvo ($\text{MPa}$ para \textit{Concrete} e $^{\circ}\text{C}$ para \textit{Melbourne}), calculando o erro quadrático médio (MSE), a raiz do erro quadrático médio (RMSE), o erro absoluto médio (MAE) e o coeficiente de determinação ($R^2$).
-\end{enumerate}
-O conjunto de teste foi mantido estritamente isolado durante todo o desenvolvimento e utilizado uma única vez nesta etapa final, nunca intervindo na escolha de atributos, épocas, taxas de aprendizagem ou seleção de modelos.
+Para cada uma das $540$ execuções totais ($18\text{ combinações} \times 30\text{ repetições}$), registaram-se: (i) as curvas de evolução do erro de treino e de validação (MSE em unidades normalizadas) a cada \textit{epoch-equivalent}; (ii) o número total de avaliações completas de gradiente efetuadas e o tempo de execução decorrido em segundos; e (iii) o desempenho final do modelo selecionado sobre o conjunto de teste, revertido para as unidades físicas originais do alvo ($\text{MPa}$ para \textit{Concrete} e $^{\circ}\text{C}$ para \textit{Melbourne}), calculando MSE, RMSE, MAE e $R^2$ \cite{b1}. O conjunto de teste foi mantido estritamente isolado durante todo o desenvolvimento e utilizado uma única vez nesta etapa final.
+
 
 \section{Resultados}
 

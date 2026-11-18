@@ -309,9 +309,9 @@ avaliada em todos os parâmetros $i \in \{1, \dots, P\}$ das três arquiteturas 
 \toprule
 \textbf{ID} & \textbf{Arquitetura} & \textbf{Parâmetros ($P$)} & \textbf{Erro Relativo Máx.} \\
 \midrule
-A & \textit{Reference} ($1 \times 10$) & $121$ & $1{,}083 \times 10^{-8}$ \\
-B & \textit{Wide} ($1 \times 100$) & $1\,201$ & $1{,}389 \times 10^{-7}$ \\
-C & \textit{Deep} ($10 \times 10$) & $1\,111$ & $3{,}437 \times 10^{-7}$ \\
+A & \textit{Reference} ($1 \times 10$) & $121$ & $4{,}401 \times 10^{-8}$ \\
+B & \textit{Wide} ($1 \times 100$) & $1\,201$ & $2{,}621 \times 10^{-7}$ \\
+C & \textit{Deep} ($10 \times 10$) & $1\,111$ & $4{,}028 \times 10^{-7}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -422,17 +422,17 @@ As Tabelas~\ref{tab:res_concrete} e \ref{tab:res_melbourne} sintetizam o desempe
 \toprule
 \textbf{Arq.} & \textbf{Alg.} & \textbf{RMSE (Média $\pm$ Std)} & \textbf{Mediana} & \textbf{Melhor} & \textbf{Pior} & \textbf{$R^2$ (Média $\pm$ Std)} & \textbf{Mediana $R^2$} & \textbf{Tempo Médio} \\
 \midrule
-A & GD   & $5{,}206 \pm 0{,}278$ & $5{,}206$ & $4{,}515$ & $5{,}723$ & $0{,}8956 \pm 0{,}0110$ & $0{,}8959$ & $2{,}66\text{ s}$ \\
-A & BFGS & $5{,}008 \pm 0{,}264$ & $4{,}956$ & $4{,}583$ & $5{,}616$ & $0{,}9034 \pm 0{,}0103$ & $0{,}9056$ & $0{,}77\text{ s}$ \\
-A & Adam & $5{,}161 \pm 0{,}273$ & $5{,}173$ & $4{,}658$ & $5{,}787$ & $0{,}8974 \pm 0{,}0108$ & $0{,}8972$ & $2{,}88\text{ s}$ \\
+A & GD   & $5{,}206 \pm 0{,}278$ & $5{,}206$ & $4{,}515$ & $5{,}723$ & $0{,}8956 \pm 0{,}0110$ & $0{,}8959$ & $2{,}54\text{ s}$ \\
+A & BFGS & $5{,}008 \pm 0{,}264$ & $4{,}956$ & $4{,}583$ & $5{,}616$ & $0{,}9034 \pm 0{,}0103$ & $0{,}9056$ & $0{,}97\text{ s}$ \\
+A & Adam & $5{,}161 \pm 0{,}273$ & $5{,}173$ & $4{,}658$ & $5{,}787$ & $0{,}8974 \pm 0{,}0108$ & $0{,}8972$ & $2{,}72\text{ s}$ \\
 \midrule
-B & GD   & $4{,}631 \pm 0{,}191$ & $4{,}631$ & $4{,}297$ & $5{,}332$ & $0{,}9175 \pm 0{,}0070$ & $0{,}9176$ & $10{,}83\text{ s}$ \\
-B & BFGS & $\mathbf{4{,}389 \pm 0{,}150}$ & $\mathbf{4{,}385}$ & $4{,}127$ & $\mathbf{4{,}732}$ & $\mathbf{0{,}9259 \pm 0{,}0051}$ & $\mathbf{0{,}9261}$ & $29{,}90\text{ s}$ \\
-B & Adam & $4{,}440 \pm 0{,}210$ & $4{,}396$ & $4{,}012$ & $4{,}958$ & $0{,}9241 \pm 0{,}0072$ & $0{,}9258$ & $11{,}26\text{ s}$ \\
+B & GD   & $4{,}631 \pm 0{,}191$ & $4{,}631$ & $4{,}297$ & $5{,}332$ & $0{,}9175 \pm 0{,}0070$ & $0{,}9176$ & $8{,}07\text{ s}$ \\
+B & BFGS & $\mathbf{4{,}389 \pm 0{,}150}$ & $\mathbf{4{,}385}$ & $4{,}127$ & $\mathbf{4{,}732}$ & $\mathbf{0{,}9259 \pm 0{,}0051}$ & $\mathbf{0{,}9261}$ & $14{,}02\text{ s}$ \\
+B & Adam & $4{,}440 \pm 0{,}210$ & $4{,}396$ & $4{,}012$ & $4{,}958$ & $0{,}9241 \pm 0{,}0072$ & $0{,}9258$ & $8{,}50\text{ s}$ \\
 \midrule
-C & GD   & $4{,}855 \pm 0{,}278$ & $4{,}788$ & $4{,}423$ & $5{,}525$ & $0{,}9091 \pm 0{,}0106$ & $0{,}9119$ & $18{,}52\text{ s}$ \\
-C & BFGS & $4{,}675 \pm 0{,}374$ & $4{,}680$ & $\mathbf{3{,}908}$ & $5{,}426$ & $0{,}9155 \pm 0{,}0135$ & $0{,}9159$ & $20{,}98\text{ s}$ \\
-C & Adam & $4{,}602 \pm 0{,}386$ & $4{,}756$ & $3{,}928$ & $5{,}259$ & $0{,}9181 \pm 0{,}0135$ & $0{,}9131$ & $20{,}09\text{ s}$ \\
+C & GD   & $4{,}855 \pm 0{,}278$ & $4{,}788$ & $4{,}423$ & $5{,}525$ & $0{,}9091 \pm 0{,}0106$ & $0{,}9119$ & $12{,}32\text{ s}$ \\
+C & BFGS & $4{,}675 \pm 0{,}374$ & $4{,}680$ & $\mathbf{3{,}908}$ & $5{,}426$ & $0{,}9155 \pm 0{,}0135$ & $0{,}9159$ & $13{,}84\text{ s}$ \\
+C & Adam & $4{,}602 \pm 0{,}386$ & $4{,}756$ & $3{,}928$ & $5{,}259$ & $0{,}9181 \pm 0{,}0135$ & $0{,}9131$ & $12{,}70\text{ s}$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -446,17 +446,17 @@ C & Adam & $4{,}602 \pm 0{,}386$ & $4{,}756$ & $3{,}928$ & $5{,}259$ & $0{,}9181
 \toprule
 \textbf{Arq.} & \textbf{Alg.} & \textbf{RMSE (Média $\pm$ Std)} & \textbf{Mediana} & \textbf{Melhor} & \textbf{Pior} & \textbf{$R^2$ (Média $\pm$ Std)} & \textbf{Mediana $R^2$} & \textbf{Tempo Médio} \\
 \midrule
-A & GD   & $2{,}193 \pm 0{,}021$ & $2{,}192$ & $2{,}152$ & $2{,}250$ & $0{,}6834 \pm 0{,}0060$ & $0{,}6838$ & $21{,}29\text{ s}$ \\
-A & BFGS & $2{,}184 \pm 0{,}017$ & $2{,}183$ & $2{,}146$ & $2{,}223$ & $0{,}6863 \pm 0{,}0050$ & $0{,}6866$ & $2{,}21\text{ s}$ \\
-A & Adam & $\mathbf{2{,}175 \pm 0{,}017}$ & $\mathbf{2{,}177}$ & $\mathbf{2{,}145}$ & $2{,}214$ & $\mathbf{0{,}6887 \pm 0{,}0048}$ & $0{,}6880$ & $23{,}06\text{ s}$ \\
+A & GD   & $2{,}193 \pm 0{,}021$ & $2{,}192$ & $2{,}152$ & $2{,}250$ & $0{,}6834 \pm 0{,}0060$ & $0{,}6838$ & $15{,}84\text{ s}$ \\
+A & BFGS & $2{,}184 \pm 0{,}017$ & $2{,}183$ & $2{,}146$ & $2{,}223$ & $0{,}6863 \pm 0{,}0050$ & $0{,}6866$ & $1{,}39\text{ s}$ \\
+A & Adam & $\mathbf{2{,}175 \pm 0{,}017}$ & $\mathbf{2{,}177}$ & $\mathbf{2{,}145}$ & $2{,}214$ & $\mathbf{0{,}6887 \pm 0{,}0048}$ & $0{,}6880$ & $17{,}05\text{ s}$ \\
 \midrule
-B & GD   & $2{,}182 \pm 0{,}010$ & $2{,}181$ & $2{,}165$ & $2{,}206$ & $0{,}6866 \pm 0{,}0030$ & $0{,}6869$ & $24{,}52\text{ s}$ \\
-B & BFGS & $2{,}181 \pm 0{,}009$ & $2{,}180$ & $2{,}164$ & $\mathbf{2{,}203}$ & $0{,}6870 \pm 0{,}0026$ & $0{,}6872$ & $17{,}56\text{ s}$ \\
-B & Adam & $2{,}181 \pm 0{,}013$ & $\mathbf{2{,}177}$ & $2{,}164$ & $2{,}219$ & $0{,}6870 \pm 0{,}0036$ & $\mathbf{0{,}6882}$ & $25{,}62\text{ s}$ \\
+B & GD   & $2{,}182 \pm 0{,}010$ & $2{,}181$ & $2{,}165$ & $2{,}206$ & $0{,}6866 \pm 0{,}0030$ & $0{,}6869$ & $22{,}39\text{ s}$ \\
+B & BFGS & $2{,}181 \pm 0{,}009$ & $2{,}180$ & $2{,}164$ & $\mathbf{2{,}203}$ & $0{,}6870 \pm 0{,}0026$ & $0{,}6872$ & $16{,}00\text{ s}$ \\
+B & Adam & $2{,}181 \pm 0{,}013$ & $\mathbf{2{,}177}$ & $2{,}164$ & $2{,}219$ & $0{,}6870 \pm 0{,}0036$ & $\mathbf{0{,}6882}$ & $23{,}53\text{ s}$ \\
 \midrule
-C & GD   & $2{,}207 \pm 0{,}022$ & $2{,}202$ & $2{,}166$ & $2{,}251$ & $0{,}6794 \pm 0{,}0065$ & $0{,}6810$ & $41{,}94\text{ s}$ \\
-C & BFGS & $2{,}191 \pm 0{,}026$ & $2{,}187$ & $2{,}155$ & $2{,}266$ & $0{,}6841 \pm 0{,}0074$ & $0{,}6852$ & $15{,}59\text{ s}$ \\
-C & Adam & $2{,}200 \pm 0{,}017$ & $2{,}202$ & $2{,}158$ & $2{,}232$ & $0{,}6814 \pm 0{,}0050$ & $0{,}6810$ & $42{,}39\text{ s}$ \\
+C & GD   & $2{,}207 \pm 0{,}022$ & $2{,}202$ & $2{,}166$ & $2{,}251$ & $0{,}6794 \pm 0{,}0065$ & $0{,}6810$ & $39{,}57\text{ s}$ \\
+C & BFGS & $2{,}191 \pm 0{,}026$ & $2{,}187$ & $2{,}155$ & $2{,}266$ & $0{,}6841 \pm 0{,}0074$ & $0{,}6852$ & $15{,}91\text{ s}$ \\
+C & Adam & $2{,}200 \pm 0{,}017$ & $2{,}202$ & $2{,}158$ & $2{,}232$ & $0{,}6814 \pm 0{,}0050$ & $0{,}6810$ & $39{,}94\text{ s}$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -524,14 +524,14 @@ Os resultados experimentais permitem retirar conclusões claras sobre a interaç
 \subsection{Impacto da Largura vs. Profundidade e Custo-Benefício}
 A expansão da capacidade da rede produz efeitos distintos nos dois problemas:
 \begin{itemize}
-    \item \textbf{Concrete:} Tanto a rede larga (\textbf{B}, $100$ neurónios) como a rede profunda (\textbf{C}, $10$ camadas) superam substancialmente a rede de referência (\textbf{A}, $10$ neurónios). Com o otimizador BFGS, a arquitetura \textbf{B} reduz o RMSE médio de $5{,}008\text{ MPa}$ para $4{,}389\text{ MPa}$ (elevando o $R^2$ de $0{,}9034$ para $0{,}9259$), enquanto a arquitetura \textbf{C} atinge $4{,}675\text{ MPa}$ ($4{,}602\text{ MPa}$ com Adam). Dada a forte não linearidade das interações físico-químicas do betão \cite{b3, b11}, o aumento de aproximadamente $10\times$ no número de parâmetros ($121 \to 1\,201$) justifica-se plenamente na arquitetura larga \textbf{B}, oferecendo o melhor compromisso entre precisão, estabilidade e tempo de treino (especialmente com Adam, em apenas $11{,}26\text{ s}$).
+    \item \textbf{Concrete:} Tanto a rede larga (\textbf{B}, $100$ neurónios) como a rede profunda (\textbf{C}, $10$ camadas) superam substancialmente a rede de referência (\textbf{A}, $10$ neurónios). Com o otimizador BFGS, a arquitetura \textbf{B} reduz o RMSE médio de $5{,}008\text{ MPa}$ para $4{,}389\text{ MPa}$ (elevando o $R^2$ de $0{,}9034$ para $0{,}9259$), enquanto a arquitetura \textbf{C} atinge $4{,}675\text{ MPa}$ ($4{,}602\text{ MPa}$ com Adam). Dada a forte não linearidade das interações físico-químicas do betão \cite{b3, b11}, o aumento de aproximadamente $10\times$ no número de parâmetros ($121 \to 1\,201$) justifica-se plenamente na arquitetura larga \textbf{B}, oferecendo o melhor compromisso entre precisão, estabilidade e tempo de treino (especialmente com Adam, em apenas $8{,}50\text{ s}$).
     \item \textbf{Melbourne:} O aumento de capacidade não traz ganhos significativos face à arquitetura de referência (\textbf{A}). O melhor resultado médio pertence à rede \textbf{A} com Adam ($\text{RMSE} = 2{,}175^{\circ}\text{C}$, $R^2 = 0{,}6887$), empatando estatisticamente com a rede larga \textbf{B} ($2{,}181^{\circ}\text{C}$) e superando a rede profunda \textbf{C} ($2{,}191\text{--}2{,}207^{\circ}\text{C}$). Neste problema, multiplicar por $10$ os parâmetros e até $2\times$ o tempo de execução não se traduz em benefício preditivo, pois a relação subjacente é dominada por uma dinâmica autorregressiva de baixa dimensão \cite{b10}.
 \end{itemize}
 
 \subsection{Comparação entre Algoritmos: Convergência, Erro e Sensibilidade}
 Analisando o comportamento dos três otimizadores sob o mesmo orçamento de \textit{epoch-equivalents}:
 \begin{itemize}
-    \item \textbf{Velocidade de convergência (por época vs. por segundo):} Em termos de \textit{epoch-equivalents}, o \textbf{BFGS} exibe a descida mais acentuada nas primeiras dezenas de avaliações de gradiente graças à informação de curvatura de segunda ordem (aproximação da Hessiana) \cite{b9}, seguido pelo \textbf{Adam} \cite{b5}, enquanto o \textbf{Mini-batch GD} apresenta a convergência inicial mais lenta. Contudo, em \textit{segundos}, o custo por iteração diverge drasticamente: na rede pequena \textbf{A}, o BFGS é o mais rápido ($0{,}77\text{ s}$ no \textit{Concrete} e $2{,}21\text{ s}$ em \textit{Melbourne}), mas nas redes com mais de $1\,100$ parâmetros (\textbf{B} e \textbf{C}) o custo matricial torna-o o mais lento no \textit{Concrete} ($29{,}90\text{ s}$ na Arq. \textbf{B} contra $11{,}26\text{ s}$ do Adam).
+    \item \textbf{Velocidade de convergência (por época vs. por segundo):} Em termos de \textit{epoch-equivalents}, o \textbf{BFGS} exibe a descida mais acentuada nas primeiras dezenas de avaliações de gradiente graças à informação de curvatura de segunda ordem (aproximação da Hessiana) \cite{b9}, seguido pelo \textbf{Adam} \cite{b5}, enquanto o \textbf{Mini-batch GD} apresenta a convergência inicial mais lenta. Contudo, em \textit{segundos}, o custo por iteração diverge drasticamente: na rede pequena \textbf{A}, o BFGS é o mais rápido ($0{,}97\text{ s}$ no \textit{Concrete} e $1{,}39\text{ s}$ em \textit{Melbourne}), mas nas redes com mais de $1\,100$ parâmetros (\textbf{B} e \textbf{C}) o custo matricial torna-o o mais lento no \textit{Concrete} ($14{,}02\text{ s}$ na Arq. \textbf{B} contra $8{,}50\text{ s}$ do Adam).
     \item \textbf{Erro final e dispersão (sensibilidade à inicialização):} O \textbf{BFGS} e o \textbf{Adam} atingem consistentemente erros de teste inferiores aos do \textbf{Mini-batch GD}. Em termos de robustez às $30$ \textit{seeds} iniciais, as arquiteturas de camada única (\textbf{A} e \textbf{B}) apresentam intervalos interquartis muito estreitos (desvio padrão de apenas $0{,}009^{\circ}\text{C}$ em \textit{Melbourne} e $0{,}150\text{ MPa}$ no \textit{Concrete} para $\text{Arq. B} + \text{BFGS}$), enquanto o \textbf{Mini-batch GD} exibe maior dispersão e caudas superiores mais longas nos \textit{box plots}.
 \end{itemize}
 
@@ -539,7 +539,7 @@ Analisando o comportamento dos três otimizadores sob o mesmo orçamento de \tex
 A arquitetura profunda \textbf{C} ($10$ camadas escondidas com ativação $\tanh$) evidencia os desafios clássicos do treino em profundidade:
 \begin{itemize}
     \item \textbf{Dissipação de gradientes e sensibilidade ao passo:} Embora a inicialização de Glorot/Xavier \cite{b8} tenha evitado falhas catastróficas de convergência, a multiplicação encadeada de $10$ derivadas de $\tanh$ ($1 - \tanh^2(z) \le 1$) atenua os gradientes nas primeiras camadas, tornando o treino mais lento e aumentando visivelmente a variância entre inicializações (o desvio padrão do RMSE no \textit{Concrete} sobe para $0{,}374\text{ MPa}$ no BFGS e $0{,}386\text{ MPa}$ no Adam). Além disso, conforme observado no ajuste de hiperparâmetros, a rede \textbf{C} revelou-se extremamente sensível a taxas de aprendizagem elevadas no Adam ($\eta \ge 2{,}51 \times 10^{-2}$ provocou instabilidade), exigindo passos substancialmente menores.
-    \item \textbf{Escalabilidade do BFGS com $P$:} O algoritmo BFGS armazena e atualiza uma matriz densa $\mathbf{H}_k \in \mathbb{R}^{P \times P}$ que aproxima a inversa da Hessiana \cite{b9}. Consequentemente, tanto a memória como o custo aritmético por iteração escalam quadraticamente com o número de parâmetros, $\mathcal{O}(P^2)$ \cite{b9}. Ao passar da arquitetura \textbf{A} ($P = 121$, $P^2 \approx 1{,}46 \times 10^4$) para a arquitetura \textbf{B} ($P = 1\,201$, $P^2 \approx 1{,}44 \times 10^6$), o custo matricial cresce cerca de $100\times$, explicando por que razão o tempo médio no \textit{Concrete} saltou de $0{,}77\text{ s}$ para $29{,}90\text{ s}$ sob o mesmo orçamento de avaliações de gradiente.
+    \item \textbf{Escalabilidade do BFGS com $P$:} O algoritmo BFGS armazena e atualiza uma matriz densa $\mathbf{H}_k \in \mathbb{R}^{P \times P}$ que aproxima a inversa da Hessiana \cite{b9}. Consequentemente, tanto a memória como o custo aritmético por iteração escalam quadraticamente com o número de parâmetros, $\mathcal{O}(P^2)$ \cite{b9}. Ao passar da arquitetura \textbf{A} ($P = 121$, $P^2 \approx 1{,}46 \times 10^4$) para a arquitetura \textbf{B} ($P = 1\,201$, $P^2 \approx 1{,}44 \times 10^6$), o custo matricial cresce cerca de $100\times$, explicando por que razão o tempo médio no \textit{Concrete} saltou de $0{,}97\text{ s}$ para $14{,}02\text{ s}$ sob o mesmo orçamento de avaliações de gradiente.
 \end{itemize}
 
 \subsection{Análise de \textit{Overfitting} e Número de Épocas}

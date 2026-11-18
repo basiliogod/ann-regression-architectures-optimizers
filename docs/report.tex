@@ -507,6 +507,43 @@ A Fig.~\ref{fig:boxplots} ilustra a distribuição do RMSE final no teste ao lon
 
 \section{Discussão}
 
+Os resultados experimentais permitem retirar conclusões claras sobre a interação entre a capacidade arquitetural, a dinâmica dos otimizadores e a natureza intrínseca de cada problema de regressão.
+
+\subsection{Impacto da Largura vs. Profundidade e Custo-Benefício}
+A expansão da capacidade da rede produz efeitos distintos nos dois problemas:
+\begin{itemize}
+    \item \textbf{Concrete:} Tanto a rede larga (\textbf{B}, $100$ neurónios) como a rede profunda (\textbf{C}, $10$ camadas) superam substancialmente a rede de referência (\textbf{A}, $10$ neurónios). Com o otimizador BFGS, a arquitetura \textbf{B} reduz o RMSE médio de $5{,}008\text{ MPa}$ para $4{,}389\text{ MPa}$ (elevando o $R^2$ de $0{,}9034$ para $0{,}9259$), enquanto a arquitetura \textbf{C} atinge $4{,}675\text{ MPa}$ ($4{,}602\text{ MPa}$ com Adam). Dada a forte não linearidade das interações físico-químicas do betão \cite{b3, b11}, o aumento de aproximadamente $10\times$ no número de parâmetros ($121 \to 1\,201$) justifica-se plenamente na arquitetura larga \textbf{B}, oferecendo o melhor compromisso entre precisão, estabilidade e tempo de treino (especialmente com Adam, em apenas $11{,}26\text{ s}$).
+    \item \textbf{Melbourne:} O aumento de capacidade não traz ganhos significativos face à arquitetura de referência (\textbf{A}). O melhor resultado médio pertence à rede \textbf{A} com Adam ($\text{RMSE} = 2{,}175^{\circ}\text{C}$, $R^2 = 0{,}6887$), empatando estatisticamente com a rede larga \textbf{B} ($2{,}181^{\circ}\text{C}$) e superando a rede profunda \textbf{C} ($2{,}191\text{--}2{,}207^{\circ}\text{C}$). Neste problema, multiplicar por $10$ os parâmetros e até $2\times$ o tempo de execução não se traduz em benefício preditivo, pois a relação subjacente é dominada por uma dinâmica autorregressiva de baixa dimensão \cite{b10}.
+\end{itemize}
+
+\subsection{Comparação entre Algoritmos: Convergência, Erro e Sensibilidade}
+Analisando o comportamento dos três otimizadores sob o mesmo orçamento de \textit{epoch-equivalents}:
+\begin{itemize}
+    \item \textbf{Velocidade de convergência (por época vs. por segundo):} Em termos de \textit{epoch-equivalents}, o \textbf{BFGS} exibe a descida mais acentuada nas primeiras dezenas de avaliações de gradiente graças à informação de curvatura de segunda ordem (aproximação da Hessiana) \cite{b9}, seguido pelo \textbf{Adam} \cite{b5}, enquanto o \textbf{Mini-batch GD} apresenta a convergência inicial mais lenta. Contudo, em \textit{segundos}, o custo por iteração diverge drasticamente: na rede pequena \textbf{A}, o BFGS é o mais rápido ($0{,}77\text{ s}$ no \textit{Concrete} e $2{,}21\text{ s}$ em \textit{Melbourne}), mas nas redes com mais de $1\,100$ parâmetros (\textbf{B} e \textbf{C}) o custo matricial torna-o o mais lento no \textit{Concrete} ($29{,}90\text{ s}$ na Arq. \textbf{B} contra $11{,}26\text{ s}$ do Adam).
+    \item \textbf{Erro final e dispersão (sensibilidade à inicialização):} O \textbf{BFGS} e o \textbf{Adam} atingem consistentemente erros de teste inferiores aos do \textbf{Mini-batch GD}. Em termos de robustez às $30$ \textit{seeds} iniciais, as arquiteturas de camada única (\textbf{A} e \textbf{B}) apresentam intervalos interquartis muito estreitos (desvio padrão de apenas $0{,}009^{\circ}\text{C}$ em \textit{Melbourne} e $0{,}150\text{ MPa}$ no \textit{Concrete} para $\text{Arq. B} + \text{BFGS}$), enquanto o \textbf{Mini-batch GD} exibe maior dispersão e caudas superiores mais longas nos \textit{box plots}.
+\end{itemize}
+
+\subsection{Comportamento da Rede Profunda e Custo Computacional do BFGS}
+A arquitetura profunda \textbf{C} ($10$ camadas escondidas com ativação $\tanh$) evidencia os desafios clássicos do treino em profundidade:
+\begin{itemize}
+    \item \textbf{Dissipação de gradientes e sensibilidade ao passo:} Embora a inicialização de Glorot/Xavier \cite{b8} tenha evitado falhas catastróficas de convergência, a multiplicação encadeada de $10$ derivadas de $\tanh$ ($1 - \tanh^2(z) \le 1$) atenua os gradientes nas primeiras camadas, tornando o treino mais lento e aumentando visivelmente a variância entre inicializações (o desvio padrão do RMSE no \textit{Concrete} sobe para $0{,}374\text{ MPa}$ no BFGS e $0{,}386\text{ MPa}$ no Adam). Além disso, conforme observado no ajuste de hiperparâmetros, a rede \textbf{C} revelou-se extremamente sensível a taxas de aprendizagem elevadas no Adam ($\eta \ge 2{,}51 \times 10^{-2}$ provocou instabilidade), exigindo passos substancialmente menores.
+    \item \textbf{Escalabilidade do BFGS com $P$:} O algoritmo BFGS armazena e atualiza uma matriz densa $\mathbf{H}_k \in \mathbb{R}^{P \times P}$ que aproxima a inversa da Hessiana \cite{b9}. Consequentemente, tanto a memória como o custo aritmético por iteração escalam quadraticamente com o número de parâmetros, $\mathcal{O}(P^2)$ \cite{b9}. Ao passar da arquitetura \textbf{A} ($P = 121$, $P^2 \approx 1{,}46 \times 10^4$) para a arquitetura \textbf{B} ($P = 1\,201$, $P^2 \approx 1{,}44 \times 10^6$), o custo matricial cresce cerca de $100\times$, explicando por que razão o tempo médio no \textit{Concrete} saltou de $0{,}77\text{ s}$ para $29{,}90\text{ s}$ sob o mesmo orçamento de avaliações de gradiente.
+\end{itemize}
+
+\subsection{Análise de \textit{Overfitting} e Número de Épocas}
+A comparação entre as curvas de treino e de validação revela comportamentos distintos conforme a capacidade do modelo e a relação sinal-ruído:
+\begin{itemize}
+    \item No \textbf{Concrete}, observa-se um ligeiro afastamento entre o erro de treino (que continua a descer de forma monótona até ao fim das $250$ épocas, especialmente nas redes \textbf{B} e \textbf{C} treinadas com BFGS e Adam) e o erro de validação (que estabiliza mais cedo). Este ligeiro \textit{overfitting} deve-se à elevada capacidade de memorização das redes com mais de $1\,100$ parâmetros face a um conjunto de treino relativamente pequeno ($721$ amostras).
+    \item Em \textbf{Melbourne}, após a rápida convergência inicial (nas primeiras $30$ a $50$ épocas), as curvas de treino e de validação estabilizam praticamente em patamares paralelos. Como a seleção final retém sempre os pesos correspondentes ao mínimo histórico na validação (\textit{early stopping} implícito), o aumento do número de épocas além desse ponto não degradou o desempenho no teste, mas desperdiçou orçamento computacional sem ganhos adicionais.
+\end{itemize}
+
+\subsection{Natureza dos Problemas e Limites de Previsibilidade}
+Os dois estudos de caso ilustram paradigmas opostos de modelação:
+\begin{itemize}
+    \item O problema do \textbf{Concrete} é governado por leis físico-químicas determinísticas e fortemente não lineares \cite{b3, b11}. Por isso, a passagem de um modelo linear ($\text{RMSE} = 6{,}417\text{ MPa}$, $R^2 = 0{,}8418$) para uma rede neuronal larga ($\text{RMSE} = 4{,}389\text{ MPa}$, $R^2 = 0{,}9259$) produz uma redução expressiva de $31{,}6\%$ no erro.
+    \item Pelo contrário, a série de \textbf{Melbourne} combina uma componente determinística (o ciclo sazonal anual) com uma forte componente estocástica (frentes meteorológicas diárias imprevisíveis a partir apenas de temperaturas mínimas passadas). Embora as redes neuronais superem claramente a persistência ingénua ($\text{RMSE} = 2{,}574^{\circ}\text{C} \to 2{,}175^{\circ}\text{C}$, uma melhoria de $15{,}5\%$), o ganho sobre o modelo linear autorregressivo $\text{AR}(7)$ ($\text{RMSE} = 2{,}262^{\circ}\text{C}$, $R^2 = 0{,}6634$) é modesto (cerca de $0{,}087^{\circ}\text{C}$ ou $3{,}8\%$ no RMSE, elevando o $R^2$ para $0{,}6887$). Isto demonstra que, em séries temporais fortemente ruidosas, a barreira de erro irredutível limita o benefício de modelos não lineares complexos face a modelos lineares bem especificados \cite{b10}.
+\end{itemize}
+
 \section{Conclusão}
 
 

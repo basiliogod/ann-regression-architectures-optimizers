@@ -353,6 +353,27 @@ Por se tratar de um método Quasi-Newton de segunda ordem executado sobre o conj
 
 \subsection{Experimentos Finais}
 
+Após a fixação de todos os hiperparâmetros na etapa de validação, procedeu-se à avaliação experimental sistemática de todas as $18$ combinações possíveis ($2\text{ conjuntos de dados} \times 3\text{ arquiteturas} \times 3\text{ algoritmos de treino}$).
+
+\subsubsection{Protocolo de Emparelhamento e Orçamento Computacional}
+Para avaliar a sensibilidade dos modelos às condições iniciais e garantir rigor estatístico, cada uma das $18$ configurações foi executada $30$ vezes com inicializações aleatórias distintas, utilizando as seeds $k \in \{1, 2, \dots, 30\}$. De modo a assegurar uma comparação emparelhada, para um dado conjunto de dados e arquitetura, a execução $k$ partilhou rigorosamente o mesmo vetor de pesos iniciais $\boldsymbol{\theta}_0^{(k)}$ entre os três algoritmos (\textit{Mini-batch GD}, \textit{BFGS} e \textit{Adam}).
+
+Para equiparar o esforço computacional entre métodos probabilísticos (\textit{mini-batch}) e métodos determinísticos (\textit{full-batch}), estabeleceu-se um orçamento idêntico medido em \textit{epoch-equivalents} (onde $1\text{ epoch-equivalent}$ corresponde a uma passagem completa sobre o conjunto de treino ou a uma avaliação do gradiente completo, incluindo todas as avaliações internas realizadas durante a pesquisa linear do BFGS):
+\begin{itemize}
+    \item \textbf{Concrete:} orçamento máximo de $250\text{ epoch-equivalents}$ por execução ($B = 32$ nos algoritmos estocásticos);
+    \item \textbf{Melbourne:} orçamento máximo de $200\text{ epoch-equivalents}$ por execução ($B = 32$ nos algoritmos estocásticos).
+\end{itemize}
+Em todas as execuções e algoritmos, aplicou-se exatamente o mesmo critério de seleção de modelo: ao longo do treino, monitorizou-se o MSE no conjunto de validação e reteve-se o vetor de parâmetros $\boldsymbol{\theta}^*$ correspondente ao menor erro de validação observado.
+
+\subsubsection{Registo de Métricas e Avaliação Única no Teste}
+Para cada uma das $540$ execuções totais ($18\text{ combinações} \times 30\text{ repetições}$), registaram-se:
+\begin{enumerate}
+    \item As curvas de evolução do erro de treino e de validação (MSE em unidades normalizadas) a cada \textit{epoch-equivalent};
+    \item O número total de avaliações completas de gradiente efetuadas e o tempo de execução decorrido em segundos;
+    \item O desempenho final do modelo selecionado sobre o conjunto de teste, revertido para as unidades físicas originais do alvo ($\text{MPa}$ para \textit{Concrete} e $^{\circ}\text{C}$ para \textit{Melbourne}), calculando o erro quadrático médio (MSE), a raiz do erro quadrático médio (RMSE), o erro absoluto médio (MAE) e o coeficiente de determinação ($R^2$).
+\end{enumerate}
+O conjunto de teste foi mantido estritamente isolado durante todo o desenvolvimento e utilizado uma única vez nesta etapa final, nunca intervindo na escolha de atributos, épocas, taxas de aprendizagem ou seleção de modelos.
+
 \section{Resultados}
 
 \section{Discussão}

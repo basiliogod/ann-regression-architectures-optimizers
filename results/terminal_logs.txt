@@ -1,0 +1,182 @@
+octave:3> run main_assignment2.m
+A iniciar Step 1: Aquisição de dados e inspeção inicial...
+
+================================================================================
+ INSPEÇÃO INICIAL: Concrete Compressive Strength (N = 1030 observações, 9 variáveis)
+================================================================================
+Variável                      |     Mín |  Mediana |   Média |      Std |     Máx | NaNs
+--------------------------------------------------------------------------------
+Cement (kg/m3)                 |   102.00 |   272.90 |   281.17 |   104.51 |   540.00 |    0
+Blast Furnace Slag (kg/m3)     |     0.00 |    22.00 |    73.90 |    86.28 |   359.40 |    0
+Fly Ash (kg/m3)                |     0.00 |     0.00 |    54.19 |    64.00 |   200.10 |    0
+Water (kg/m3)                  |   121.75 |   185.00 |   181.57 |    21.36 |   247.00 |    0
+Superplasticizer (kg/m3)       |     0.00 |     6.35 |     6.20 |     5.97 |    32.20 |    0
+Coarse Aggregate (kg/m3)       |   801.00 |   968.00 |   972.92 |    77.75 |  1145.00 |    0
+Fine Aggregate (kg/m3)         |   594.00 |   779.51 |   773.58 |    80.18 |   992.60 |    0
+Age (days)                     |     1.00 |    28.00 |    45.66 |    63.17 |   365.00 |    0
+Compressive Strength (MPa)     |     2.33 |    34.45 |    35.82 |    16.71 |    82.60 |    0
+================================================================================
+
+--- Metadados Melbourne ---
+Cobertura temporal: 1981-01-01 a 1990-12-31 (3650 registos)
+Valores com "?" limpos na leitura: 3 | Valores NaN restantes: 0
+
+================================================================================
+ INSPEÇÃO INICIAL: Melbourne Temperatures (N = 3650 observações, 1 variáveis)
+================================================================================
+Variável                      |     Mín |  Mediana |   Média |      Std |     Máx | NaNs
+--------------------------------------------------------------------------------
+Daily Min Temp (C)             |     0.00 |    11.00 |    11.18 |     4.07 |    26.30 |    0
+================================================================================
+
+
+A iniciar Step 2: Análise Exploratória dos Dados (EDA)...
+Correlações com Compressive Strength (MPa):
+  Cement (kg/m3)               : r = +0.498
+  Blast Furnace Slag (kg/m3)   : r = +0.135
+  Fly Ash (kg/m3)              : r = -0.106
+  Water (kg/m3)                : r = -0.290
+  Superplasticizer (kg/m3)     : r = +0.366
+  Coarse Aggregate (kg/m3)     : r = -0.165
+  Fine Aggregate (kg/m3)       : r = -0.167
+  Age (days)                   : r = +0.329
+
+--- Verificação de Anomalias e Padrões (Melbourne) ---
+Registos exatamente iguais a 0.0 C : 2
+Salto diário máximo               : 12.70 C (1984-11-26 -> 1984-11-27)
+Saltos diários > 10 C             : 4
+Correlação lag-1 T(t) vs T(t+1)   : 0.7749
+
+A iniciar Step 3: Feature Engineering...
+Concrete: 10 features preparadas (Cement (kg/m3), Blast Furnace Slag (kg/m3), Fly Ash (kg/m3), Water (kg/m3), Superplasticizer (kg/m3), Coarse Aggregate (kg/m3), Fine Aggregate (kg/m3), Age (days), Water/Cement Ratio, log(Age))
+Melbourne: 3643 amostras criadas com janela p=7 e 9 features (T(t), T(t-1), T(t-2), T(t-3), T(t-4), T(t-5), T(t-6), sin(2*pi*doy/365), cos(2*pi*doy/365))
+
+
+A iniciar Step 4: Particionamento dos dados (70/15/15)...
+Concrete Split (Aleatório) -> Treino: 721 | Validação: 155 | Teste: 154
+  Misturas únicas (7 ingredientes): 428 em 1030 observações
+  Misturas do teste também presentes no treino (outra idade): 88 (68.8%)
+Melbourne Split (Cronológico) -> Treino: 2550 | Validação: 546 | Teste: 547
+  Treino   : 1981-01-08 a 1988-01-02
+  Validação: 1988-01-03 a 1989-07-02
+  Teste    : 1989-07-03 a 1990-12-31
+
+A iniciar Step 5: Verificação de gradientes por diferenças finitas...
+  Arquitetura A ( 121 parâmetros) -> Erro relativo máximo: 4.401e-08
+  Arquitetura B (1201 parâmetros) -> Erro relativo máximo: 2.621e-07
+  Arquitetura C (1111 parâmetros) -> Erro relativo máximo: 4.028e-07
+
+A iniciar Step 6: Tuning de Hiperparâmetros na validação...
+--------------------------------------------------------------------------------
+ TUNING DE LEARNING RATE: Concrete (6 LRs x 5 reps x 60 épocas, B=32)
+--------------------------------------------------------------------------------
+  Arq A | GD   -> Melhor lr = 1.00e-01 (Mediana Val MSE = 0.0988)
+  Arq A | Adam -> Melhor lr = 2.51e-02 (Mediana Val MSE = 0.0931)
+  Arq B | GD   -> Melhor lr = 1.00e-01 (Mediana Val MSE = 0.0988)
+  Arq B | Adam -> Melhor lr = 6.31e-03 (Mediana Val MSE = 0.0823)
+  Arq C | GD   -> Melhor lr = 1.00e-01 (Mediana Val MSE = 0.0979)
+  Arq C | Adam -> Melhor lr = 6.31e-03 (Mediana Val MSE = 0.0930)
+
+--------------------------------------------------------------------------------
+ TUNING DE LEARNING RATE: Melbourne (6 LRs x 5 reps x 60 épocas, B=32)
+--------------------------------------------------------------------------------
+  Arq A | GD   -> Melhor lr = 1.00e-01 (Mediana Val MSE = 0.3064)
+  Arq A | Adam -> Melhor lr = 1.58e-03 (Mediana Val MSE = 0.3074)
+  Arq B | GD   -> Melhor lr = 2.51e-02 (Mediana Val MSE = 0.3123)
+  Arq B | Adam -> Melhor lr = 1.58e-03 (Mediana Val MSE = 0.3085)
+  Arq C | GD   -> Melhor lr = 2.51e-02 (Mediana Val MSE = 0.3169)
+  Arq C | Adam -> Melhor lr = 3.98e-04 (Mediana Val MSE = 0.3095)
+
+Resultados do Step 6 guardados com sucesso em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../results/tuning_results.mat
+
+A iniciar Step 7: Experiências Finais...
+================================================================================
+ EXPERIÊNCIAS FINAIS: Concrete (3 Arqs x 3 Algs x 30 runs | Orçamento = 250 ep-eq)
+================================================================================
+Arquitetura A (121 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 5.206 ± 0.278 | R2: 0.8956 ± 0.0110 | Ep-Eq: 250 | Tempo por execucao: 2.54s
+  -> BFGS | Test RMSE: 5.008 ± 0.264 | R2: 0.9034 ± 0.0103 | Ep-Eq: 250 | Tempo por execucao: 0.97s
+  -> Adam | Test RMSE: 5.161 ± 0.273 | R2: 0.8974 ± 0.0108 | Ep-Eq: 250 | Tempo por execucao: 2.72s
+
+Arquitetura B (1201 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 4.631 ± 0.191 | R2: 0.9175 ± 0.0070 | Ep-Eq: 250 | Tempo por execucao: 8.07s
+  -> BFGS | Test RMSE: 4.389 ± 0.150 | R2: 0.9259 ± 0.0051 | Ep-Eq: 250 | Tempo por execucao: 14.02s
+  -> Adam | Test RMSE: 4.440 ± 0.210 | R2: 0.9241 ± 0.0072 | Ep-Eq: 250 | Tempo por execucao: 8.50s
+
+Arquitetura C (1111 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 4.855 ± 0.278 | R2: 0.9091 ± 0.0106 | Ep-Eq: 250 | Tempo por execucao: 12.32s
+  -> BFGS | Test RMSE: 4.675 ± 0.374 | R2: 0.9155 ± 0.0135 | Ep-Eq: 250 | Tempo por execucao: 13.84s
+  -> Adam | Test RMSE: 4.602 ± 0.386 | R2: 0.9181 ± 0.0135 | Ep-Eq: 250 | Tempo por execucao: 12.70s
+
+Resultados de Concrete guardados em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../results/final_results_concrete.mat
+
+================================================================================
+ EXPERIÊNCIAS FINAIS: Melbourne (3 Arqs x 3 Algs x 30 runs | Orçamento = 200 ep-eq)
+================================================================================
+Arquitetura A (111 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 2.193 ± 0.021 | R2: 0.6834 ± 0.0060 | Ep-Eq: 200 | Tempo por execucao: 15.84s
+  -> BFGS | Test RMSE: 2.184 ± 0.017 | R2: 0.6863 ± 0.0050 | Ep-Eq: 200 | Tempo por execucao: 1.39s
+  -> Adam | Test RMSE: 2.175 ± 0.017 | R2: 0.6887 ± 0.0048 | Ep-Eq: 200 | Tempo por execucao: 17.05s
+
+Arquitetura B (1101 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 2.182 ± 0.010 | R2: 0.6866 ± 0.0030 | Ep-Eq: 200 | Tempo por execucao: 22.39s
+  -> BFGS | Test RMSE: 2.181 ± 0.009 | R2: 0.6870 ± 0.0026 | Ep-Eq: 200 | Tempo por execucao: 16.00s
+  -> Adam | Test RMSE: 2.181 ± 0.013 | R2: 0.6870 ± 0.0036 | Ep-Eq: 200 | Tempo por execucao: 23.53s
+
+Arquitetura C (1101 parâmetros): a executar 30 runs emparelhadas...
+  -> GD   | Test RMSE: 2.207 ± 0.022 | R2: 0.6794 ± 0.0065 | Ep-Eq: 200 | Tempo por execucao: 39.57s
+  -> BFGS | Test RMSE: 2.191 ± 0.026 | R2: 0.6841 ± 0.0074 | Ep-Eq: 200 | Tempo por execucao: 15.91s
+  -> Adam | Test RMSE: 2.200 ± 0.017 | R2: 0.6814 ± 0.0050 | Ep-Eq: 200 | Tempo por execucao: 39.94s
+
+Resultados de Melbourne guardados em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../results/final_results_melbourne.mat
+
+Todos os resultados guardados com sucesso em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../results/final_results_all.mat
+
+A iniciar Step 8: Geração de tabelas, baselines e gráficos finais...
+================================================================================
+ MODELOS DE REFERÊNCIA (CONJUNTO DE TESTE - UNIDADES ORIGINAIS)
+================================================================================
+Concrete  | Regressão Linear (OLS) -> RMSE:  6.417 MPa | MAE:  5.023 | R2: 0.8418
+Melbourne | Persistência T(t+1)=T(t)-> RMSE:  2.574 °C  | MAE:  2.038 | R2: 0.5640
+Melbourne | Autorregressivo AR(7)   -> RMSE:  2.262 °C  | MAE:  1.760 | R2: 0.6634
+================================================================================
+
+=============================================================================================================
+ TABELA RESUMO 3x3: Concrete (30 runs | Unidades: MPa)
+=============================================================================================================
+Arq  | Alg   | RMSE (M±Std)   | Mediana  | Melhor   | Pior     | R2 (M±Std)     | Med R2   | Tempo por execucao
+-------------------------------------------------------------------------------------------------------------
+A    | GD    |  5.206 ± 0.278  |    5.206 |    4.515 |    5.723 | 0.8956 ± 0.0110 |   0.8959 |   2.54s
+A    | BFGS  |  5.008 ± 0.264  |    4.956 |    4.583 |    5.616 | 0.9034 ± 0.0103 |   0.9056 |   0.97s
+A    | Adam  |  5.161 ± 0.273  |    5.173 |    4.658 |    5.787 | 0.8974 ± 0.0108 |   0.8972 |   2.72s
+-------------------------------------------------------------------------------------------------------------
+B    | GD    |  4.631 ± 0.191  |    4.631 |    4.297 |    5.332 | 0.9175 ± 0.0070 |   0.9176 |   8.07s
+B    | BFGS  |  4.389 ± 0.150  |    4.385 |    4.127 |    4.732 | 0.9259 ± 0.0051 |   0.9261 |  14.02s
+B    | Adam  |  4.440 ± 0.210  |    4.396 |    4.012 |    4.958 | 0.9241 ± 0.0072 |   0.9258 |   8.50s
+-------------------------------------------------------------------------------------------------------------
+C    | GD    |  4.855 ± 0.278  |    4.788 |    4.423 |    5.525 | 0.9091 ± 0.0106 |   0.9119 |  12.32s
+C    | BFGS  |  4.675 ± 0.374  |    4.680 |    3.908 |    5.426 | 0.9155 ± 0.0135 |   0.9159 |  13.84s
+C    | Adam  |  4.602 ± 0.386  |    4.756 |    3.928 |    5.259 | 0.9181 ± 0.0135 |   0.9131 |  12.70s
+=============================================================================================================
+
+=============================================================================================================
+ TABELA RESUMO 3x3: Melbourne (30 runs | Unidades: °C)
+=============================================================================================================
+Arq  | Alg   | RMSE (M±Std)   | Mediana  | Melhor   | Pior     | R2 (M±Std)     | Med R2   | Tempo por execucao
+-------------------------------------------------------------------------------------------------------------
+A    | GD    |  2.193 ± 0.021  |    2.192 |    2.152 |    2.250 | 0.6834 ± 0.0060 |   0.6838 |  15.84s
+A    | BFGS  |  2.184 ± 0.017  |    2.183 |    2.146 |    2.223 | 0.6863 ± 0.0050 |   0.6866 |   1.39s
+A    | Adam  |  2.175 ± 0.017  |    2.177 |    2.145 |    2.214 | 0.6887 ± 0.0048 |   0.6880 |  17.05s
+-------------------------------------------------------------------------------------------------------------
+B    | GD    |  2.182 ± 0.010  |    2.181 |    2.165 |    2.206 | 0.6866 ± 0.0030 |   0.6869 |  22.39s
+B    | BFGS  |  2.181 ± 0.009  |    2.180 |    2.164 |    2.203 | 0.6870 ± 0.0026 |   0.6872 |  16.00s
+B    | Adam  |  2.181 ± 0.013  |    2.177 |    2.164 |    2.219 | 0.6870 ± 0.0036 |   0.6882 |  23.53s
+-------------------------------------------------------------------------------------------------------------
+C    | GD    |  2.207 ± 0.022  |    2.202 |    2.166 |    2.251 | 0.6794 ± 0.0065 |   0.6810 |  39.57s
+C    | BFGS  |  2.191 ± 0.026  |    2.187 |    2.155 |    2.266 | 0.6841 ± 0.0074 |   0.6852 |  15.91s
+C    | Adam  |  2.200 ± 0.017  |    2.202 |    2.158 |    2.232 | 0.6814 ± 0.0050 |   0.6810 |  39.94s
+=============================================================================================================
+
+
+Estudo comparativo concluído com sucesso! Resultados guardados em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../results e figuras em /home/guilherme/Documentos/ann-regression-architectures-optimizers/src/../outputs
+octave:4> 

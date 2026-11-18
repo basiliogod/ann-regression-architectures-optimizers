@@ -48,15 +48,26 @@ Funchal, Portugal \\
 \maketitle
 
 \begin{abstract}
-
+Este trabalho apresenta um estudo comparativo sistemático sobre o impacto da arquitetura de redes neuronais \textit{feed-forward} e dos algoritmos de otimização em duas tarefas de regressão: previsão estática da resistência à compressão do betão (\textit{Concrete}) e previsão da temperatura mínima diária em \textit{Melbourne}. Foram implementadas de raiz, em linguagem MATLAB compatível com GNU Octave, três configurações arquiteturais -- referência, larga e profunda -- treinadas com \textit{Mini-batch Gradient Descent}, \textit{BFGS} e \textit{Adam} sob orçamento computacional equivalente e protocolo emparelhado de $30$ repetições. Os resultados mostram que, no problema não linear do betão, a rede larga supera a regressão linear ($\text{RMSE}$ de $4{,}389\text{ MPa}$ contra $6{,}417\text{ MPa}$), destacando-se o BFGS e o Adam. Na série temporal de Melbourne, a rede compacta de referência com Adam atinge o melhor desempenho ($\text{RMSE} = 2{,}175^{\circ}\text{C}$), superando a persistência ($2{,}574^{\circ}\text{C}$) e o modelo autorregressivo $\text{AR}(7)$ ($2{,}262^{\circ}\text{C}$), mas evidenciando que o ruído meteorológico limita os ganhos de arquiteturas mais complexas.
 \end{abstract}
 
 \begin{IEEEkeywords}
-
+Redes Neuronais Artificiais, Regressão Não Linear, Séries Temporais, Gradient Descent, BFGS, Adam.
 \end{IEEEkeywords}
 
 \section{Introdução}
 
+\section{Introdução}
+
+As redes neuronais artificiais \textit{feed-forward} constituem aproximadores universais capazes de capturar relações não lineares complexas entre variáveis de entrada e saída \cite{b6}. Contudo, o desempenho preditivo e a eficiência computacional destes modelos dependem fortemente de duas decisões fundamentais de projeto: a topologia da rede (compromisso entre largura e profundidade) e o algoritmo de otimização utilizado para ajustar os seus parâmetros \cite{b1, b7}.
+
+O presente estudo investiga estas duas dimensões em dois problemas de regressão de natureza distinta \cite{b1}:
+\begin{enumerate}
+    \item \textbf{Regressão estática tabular (\textit{Concrete Compressive Strength}):} estimativa da resistência mecânica do betão a partir da dosagem dos seus componentes físicos e químicos e da idade de cura, um fenómeno governado por reações de hidratação fortemente não lineares \cite{b2, b3, b11};
+    \item \textbf{Previsão de séries temporais univariadas (\textit{Daily Minimum Temperatures in Melbourne}):} previsão a um passo no futuro ($T(t+1)$) da temperatura mínima diária, caracterizada por uma forte sazonalidade anual combinada com elevada variabilidade estocástica diária \cite{b4, b10}.
+\end{enumerate}
+
+Para assegurar rigor metodológico e transparência total na avaliação do custo computacional, toda a biblioteca de redes neuronais, retropropagação \cite{b7} e otimização foi desenvolvida de raiz em linguagem MATLAB compatível com GNU Octave \cite{b1}. Compararam-se três arquiteturas -- uma rede de referência ($1$ camada escondida com $10$ neurónios), uma rede larga ($1$ camada com $100$ neurónios) e uma rede profunda ($10$ camadas com $10$ neurónios cada) -- treinadas com um método estocástico de primeira ordem (\textit{Mini-batch Gradient Descent}), um método adaptativo baseado em momentos (\textit{Adam}) \cite{b5} e um método determinístico Quasi-Newton de segunda ordem (\textit{BFGS}) \cite{b9}. O desempenho das $18$ combinações resultantes é avaliado ao longo de $30$ inicializações emparelhadas e contextualizado face a modelos de referência lineares e de persistência \cite{b1, b10}.
 
 \section{Metodologia}
 
@@ -546,6 +557,11 @@ Os dois estudos de caso ilustram paradigmas opostos de modelação:
 
 \section{Conclusão}
 
+Este trabalho investigou de forma sistemática o impacto da arquitetura de redes neuronais \textit{feed-forward} e dos algoritmos de treino em dois problemas distintos de regressão, recorrendo a uma biblioteca desenvolvida integralmente de raiz em MATLAB/GNU Octave.
+
+Os resultados experimentais demonstram que não existe uma arquitetura ou otimizador universalmente superior. A escolha ideal depende da complexidade funcional e do nível de ruído dos dados. Em problemas tabulares fortemente não lineares e de baixo ruído como a previsão da resistência do betão (\textit{Concrete}), o aumento da largura da camada escondida (\textbf{Arquitetura B}, $100$ neurónios) proporciona ganhos substanciais de precisão face a modelos lineares e redes pequenas, destacando-se o \textbf{BFGS} pela precisão e o \textbf{Adam} pelo excelente equilíbrio entre qualidade e rapidez de execução. Em contrapartida, na previsão de séries temporais ruidosas como as temperaturas mínimas de \textbf{Melbourne}, uma arquitetura compacta (\textbf{Arquitetura A}, $10$ neurónios) treinada com \textbf{Adam} atinge o limite prático de previsibilidade da série com menor custo e menor risco de sobreajuste do que redes profundas ou excessivamente parametrizadas.
+
+Por fim, o desenvolvimento completo da \textit{pipeline}, desde a análise exploratória e prevenção de \textit{data leakage} até à verificação numérica dos gradientes por diferenças finitas e comparação emparelhada sob orçamento computacional equivalente, evidenciou a importância da validação empírica controlada, do ajuste da taxa de aprendizagem e da utilização de modelos de referência lineares como termo de comparação indispensável.
 
 \begin{thebibliography}{00}
 
@@ -558,6 +574,18 @@ Os dois estudos de caso ilustram paradigmas opostos de modelação:
 \bibitem{b4} P. Brabban, ``Daily Minimum Temperatures in Melbourne,'' Kaggle Dataset. \url{https://www.kaggle.com/datasets/paulbrabban/daily-minimum-temperatures-in-melbourne}
 
 \bibitem{b5} D. P. Kingma e J. Ba, ``Adam: A Method for Stochastic Optimization,'' in \textit{Proc. 3rd Int. Conf. Learn. Representations (ICLR)}, San Diego, CA, USA, 2015.
+
+\bibitem{b6} K. Hornik, M. Stinchcombe e H. White, ``Multilayer feedforward networks are universal approximators,'' \textit{Neural Networks}, vol. 2, no. 5, pp. 359--366, 1989.
+
+\bibitem{b7} D. E. Rumelhart, G. E. Hinton e R. J. Williams, ``Learning representations by back-propagating errors,'' \textit{Nature}, vol. 323, pp. 533--536, Oct. 1986.
+
+\bibitem{b8} X. Glorot e Y. Bengio, ``Understanding the difficulty of training deep feedforward neural networks,'' in \textit{Proc. 13th Int. Conf. Artif. Intell. Statist. (AISTATS)}, Sardinia, Italy, 2010, pp. 249--256.
+
+\bibitem{b9} J. Nocedal e S. J. Wright, \textit{Numerical Optimization}, 2nd ed. New York, NY, USA: Springer, 2006.
+
+\bibitem{b10} G. E. P. Box, G. M. Jenkins, G. C. Reinsel e G. M. Ljung, \textit{Time Series Analysis: Forecasting and Control}, 5th ed. Hoboken, NJ, USA: Wiley, 2015.
+
+\bibitem{b11} A. M. Neville, \textit{Properties of Concrete}, 5th ed. Harlow, U.K.: Pearson Education, 2011.
 
 \end{thebibliography}
 

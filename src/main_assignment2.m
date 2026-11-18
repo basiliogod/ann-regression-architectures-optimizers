@@ -1,12 +1,29 @@
 % Script principal de execução do estudo comparativo.
-clear; clc;
+clear all; clc;
 
-% Compatibilidade gráfica para exportação headless no GNU Octave 
+% Compatibilidade gráfica no GNU Octave:
+% Prioriza 'qt' (ex: Linux) se disponível e com display; caso contrário usa 'gnuplot' (ex: Windows).
 if exist('OCTAVE_VERSION', 'builtin')
     warning('off', 'all');
-    if (isempty(getenv('DISPLAY')) || ~isguirunning()) && ismember('gnuplot', available_graphics_toolkits())
-        graphics_toolkit('gnuplot');
-        set(0, 'DefaultFigure__graphics_toolkit__', 'gnuplot');
+    available_tk = available_graphics_toolkits();
+    tk_chosen = 'gnuplot';
+
+    if ismember('qt', available_tk)
+        has_display = ~isunix() || ~isempty(getenv('DISPLAY')) || ~isempty(getenv('WAYLAND_DISPLAY'));
+        if has_display
+            try
+                graphics_toolkit('qt');
+                test_h = figure('Visible', 'off');
+                close(test_h);
+                tk_chosen = 'qt';
+            catch
+                tk_chosen = 'gnuplot';
+            end
+        end
+    end
+
+    if ismember(tk_chosen, available_tk)
+        graphics_toolkit(tk_chosen);
     end
 end
 

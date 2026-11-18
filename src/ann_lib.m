@@ -41,17 +41,19 @@ function L = ann_lib()
 end
 
 function h = create_headless_fig(pos)
-    % CREATE_HEADLESS_FIG : Função auxiliar que cria uma figura invisível compatível com ambientes sem ecrã.
     if exist('OCTAVE_VERSION', 'builtin')
-        warning('off', 'Octave:deprecated-graphics-toolkit');
-        if (isempty(getenv('DISPLAY')) || ~isguirunning()) && ismember('gnuplot', available_graphics_toolkits())
+        warning('off', 'all');
+        avail = available_graphics_toolkits();
+        if ~ismember('qt', avail) && ismember('gnuplot', avail)
             graphics_toolkit('gnuplot');
-            h = figure('Visible', 'off', 'Position', pos);
-            set(h, '__graphics_toolkit__', 'gnuplot');
-            return;
         end
     end
     h = figure('Visible', 'off', 'Position', pos);
+    if exist('OCTAVE_VERSION', 'builtin') && strcmp(graphics_toolkit(), 'fltk')
+        close(h);
+        graphics_toolkit('gnuplot');
+        h = figure('Visible', 'off', 'Position', pos);
+    end
 end
 
 function [X, y, var_names] = load_concrete(filepath)

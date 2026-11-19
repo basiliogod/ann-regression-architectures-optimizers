@@ -31,7 +31,7 @@ All models implement fully connected feedforward networks with $\tanh$ hidden ac
 - **Architecture A (*Reference*):** $1$ hidden layer with $10$ neurons ($121$ params on Concrete; $111$ on Melbourne).
 - **Architecture B (*Wide*):** $1$ hidden layer with $100$ neurons ($1\,201$ params on Concrete; $1\,101$ on Melbourne).
 - **Architecture C (*Deep*):** $10$ hidden layers with $10$ neurons each ($1\,111$ params on Concrete; $1\,101$ on Melbourne).
-- **Analytical Gradient Verification:** Validated exact backpropagation gradients against centered finite differences ($\epsilon = 10^{-6}$), achieving maximum relative errors of $1.083 \times 10^{-8}$ (Arq. A), $1.389 \times 10^{-7}$ (Arq. B), and $3.437 \times 10^{-7}$ (Arq. C).
+- **Analytical Gradient Verification:** Validated exact backpropagation gradients against centered finite differences ($\epsilon = 10^{-6}$), achieving maximum relative errors of $4.401 \times 10^{-8}$ (Arq. A), $2.621 \times 10^{-7}$ (Arq. B), and $4.028 \times 10^{-7}$ (Arq. C).
 
 ### 4. Training Algorithms & Paired Experimental Protocol
 - **Optimizers Implemented from Scratch:**
@@ -49,29 +49,29 @@ All models implement fully connected feedforward networks with $\tanh$ hidden ac
 
 | Architecture | Optimizer | Test RMSE (Mean $\pm$ Std) | Median RMSE | Best / Worst | Mean $R^2$ | Avg. Time |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **A (Reference)** | Mini-batch GD | $5.206 \pm 0.278$ | $5.206$ | $4.515 / 5.723$ | $0.8956$ | $2.66\text{ s}$ |
-| **A (Reference)** | BFGS | $5.008 \pm 0.264$ | $4.956$ | $4.583 / 5.616$ | $0.9034$ | $0.77\text{ s}$ |
-| **A (Reference)** | Adam | $5.161 \pm 0.273$ | $5.173$ | $4.658 / 5.787$ | $0.8974$ | $2.88\text{ s}$ |
-| **B (Wide)** | Mini-batch GD | $4.631 \pm 0.191$ | $4.631$ | $4.297 / 5.332$ | $0.9175$ | $10.83\text{ s}$ |
-| **B (Wide)** | **BFGS** | **$4.389 \pm 0.150$** | **$4.385$** | **$4.127 / 4.732$** | **$0.9259$** | $29.90\text{ s}$ |
-| **B (Wide)** | **Adam** | **$4.440 \pm 0.210$** | **$4.396$** | **$4.012 / 4.958$** | **$0.9241$** | **$11.26\text{ s}$** |
-| **C (Deep)** | Mini-batch GD | $4.855 \pm 0.278$ | $4.788$ | $4.423 / 5.525$ | $0.9091$ | $18.52\text{ s}$ |
-| **C (Deep)** | BFGS | $4.675 \pm 0.374$ | $4.680$ | $3.908 / 5.426$ | $0.9155$ | $20.98\text{ s}$ |
-| **C (Deep)** | Adam | $4.602 \pm 0.386$ | $4.756$ | $3.928 / 5.259$ | $0.9181$ | $20.09\text{ s}$ |
+| **A (Reference)** | Mini-batch GD | $5.206 \pm 0.278$ | $5.206$ | $4.515 / 5.723$ | $0.8956$ | $2.54\text{ s}$ |
+| **A (Reference)** | BFGS | $5.008 \pm 0.264$ | $4.956$ | $4.583 / 5.616$ | $0.9034$ | $0.97\text{ s}$ |
+| **A (Reference)** | Adam | $5.161 \pm 0.273$ | $5.173$ | $4.658 / 5.787$ | $0.8974$ | $2.72\text{ s}$ |
+| **B (Wide)** | Mini-batch GD | $4.631 \pm 0.191$ | $4.631$ | $4.297 / 5.332$ | $0.9175$ | $8.07\text{ s}$ |
+| **B (Wide)** | **BFGS** | **$4.389 \pm 0.150$** | **$4.385$** | **$4.127 / 4.732$** | **$0.9259$** | $14.02\text{ s}$ |
+| **B (Wide)** | **Adam** | **$4.440 \pm 0.210$** | **$4.396$** | **$4.012 / 4.958$** | **$0.9241$** | **$8.50\text{ s}$** |
+| **C (Deep)** | Mini-batch GD | $4.855 \pm 0.278$ | $4.788$ | $4.423 / 5.525$ | $0.9091$ | $12.32\text{ s}$ |
+| **C (Deep)** | BFGS | $4.675 \pm 0.374$ | $4.680$ | $3.908 / 5.426$ | $0.9155$ | $13.84\text{ s}$ |
+| **C (Deep)** | Adam | $4.602 \pm 0.386$ | $4.756$ | $3.928 / 5.259$ | $0.9181$ | $12.70\text{ s}$ |
 
 ### Melbourne Min Temperatures ($^{\circ}\text{C}$) — Baselines: Persistence `2.574 °C` ($R^2 = 0.5640$) | AR(7) `2.262 °C` ($R^2 = 0.6634$)
 
 | Architecture | Optimizer | Test RMSE (Mean $\pm$ Std) | Median RMSE | Best / Worst | Mean $R^2$ | Avg. Time |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **A (Reference)** | Mini-batch GD | $2.193 \pm 0.021$ | $2.192$ | $2.152 / 2.250$ | $0.6834$ | $21.29\text{ s}$ |
-| **A (Reference)** | BFGS | $2.184 \pm 0.017$ | $2.183$ | $2.146 / 2.223$ | $0.6863$ | $2.21\text{ s}$ |
-| **A (Reference)** | **Adam** | **$2.175 \pm 0.017$** | **$2.177$** | **$2.145 / 2.214$** | **$0.6887$** | **$23.06\text{ s}$** |
-| **B (Wide)** | Mini-batch GD | $2.182 \pm 0.010$ | $2.181$ | $2.165 / 2.206$ | $0.6866$ | $24.52\text{ s}$ |
-| **B (Wide)** | BFGS | $2.181 \pm 0.009$ | $2.180$ | $2.164 / 2.203$ | $0.6870$ | $17.56\text{ s}$ |
-| **B (Wide)** | Adam | $2.181 \pm 0.013$ | $2.177$ | $2.164 / 2.219$ | $0.6870$ | $25.62\text{ s}$ |
-| **C (Deep)** | Mini-batch GD | $2.207 \pm 0.022$ | $2.202$ | $2.166 / 2.251$ | $0.6794$ | $41.94\text{ s}$ |
-| **C (Deep)** | BFGS | $2.191 \pm 0.026$ | $2.187$ | $2.155 / 2.266$ | $0.6841$ | $15.59\text{ s}$ |
-| **C (Deep)** | Adam | $2.200 \pm 0.017$ | $2.202$ | $2.158 / 2.232$ | $0.6814$ | $42.39\text{ s}$ |
+| **A (Reference)** | Mini-batch GD | $2.193 \pm 0.021$ | $2.192$ | $2.152 / 2.250$ | $0.6834$ | $15.84\text{ s}$ |
+| **A (Reference)** | BFGS | $2.184 \pm 0.017$ | $2.183$ | $2.146 / 2.223$ | $0.6863$ | $1.39\text{ s}$ |
+| **A (Reference)** | **Adam** | **$2.175 \pm 0.017$** | **$2.177$** | **$2.145 / 2.214$** | **$0.6887$** | **$17.05\text{ s}$** |
+| **B (Wide)** | Mini-batch GD | $2.182 \pm 0.010$ | $2.181$ | $2.165 / 2.206$ | $0.6866$ | $22.39\text{ s}$ |
+| **B (Wide)** | BFGS | $2.181 \pm 0.009$ | $2.180$ | $2.164 / 2.203$ | $0.6870$ | $16.00\text{ s}$ |
+| **B (Wide)** | Adam | $2.181 \pm 0.013$ | $2.177$ | $2.164 / 2.219$ | $0.6870$ | $23.53\text{ s}$ |
+| **C (Deep)** | Mini-batch GD | $2.207 \pm 0.022$ | $2.202$ | $2.166 / 2.251$ | $0.6794$ | $39.57\text{ s}$ |
+| **C (Deep)** | BFGS | $2.191 \pm 0.026$ | $2.187$ | $2.155 / 2.266$ | $0.6841$ | $15.91\text{ s}$ |
+| **C (Deep)** | Adam | $2.200 \pm 0.017$ | $2.202$ | $2.158 / 2.232$ | $0.6814$ | $39.94\text{ s}$ |
 
 ---
 

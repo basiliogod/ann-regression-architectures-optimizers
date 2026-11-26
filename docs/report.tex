@@ -365,7 +365,7 @@ Por se tratar de um método Quasi-Newton de segunda ordem executado sobre o conj
 \begin{itemize}
     \item \textbf{Condição de decréscimo suficiente (Armijo):} constante $c_1 = 10^{-4}$ \cite{b9};
     \item \textbf{Condição de curvatura:} constante $c_2 = 0{,}9$, com um limite máximo de $15$ avaliações por pesquisa linear e atualização da aproximação da inversa da Hessiana $\mathbf{H}_k$ protegida contra curvatura não positiva ($\mathbf{s}_k^\top \mathbf{y}_k > 10^{-14}$) \cite{b9};
-    \item \textbf{Critérios de paragem:} o algoritmo termina antecipadamente caso a norma infinito do gradiente atinja $\|\nabla \mathcal{L}(\boldsymbol{\theta}_k)\|_\infty \le 10^{-6}$ ou a norma do passo seja inferior a $\|\mathbf{s}_k\|_2 < 10^{-12}$; caso contrário, prossegue até esgotar o orçamento máximo de avaliações de gradiente (\textit{epoch-equivalents}) definido para as experiências finais \cite{b1, b9}.
+    \item \textbf{Critérios de paragem:} o algoritmo termina antecipadamente caso $\|\nabla \mathcal{L}(\boldsymbol{\theta}_k)\|_\infty \le 10^{-6}$, a norma do passo seja $\|\mathbf{s}_k\|_2 < 10^{-8}$ ou a variação da perda após $5$ iterações seja $|\Delta \mathcal{L}| < 10^{-9}$; caso contrário, prossegue até esgotar o orçamento de \textit{epoch-equivalents} das experiências finais \cite{b1, b9}.
 \end{itemize}
 
 \subsection{Experimentos Finais}
@@ -499,7 +499,7 @@ As Figs.~\ref{fig:prog_conc} e \ref{fig:prog_melb} apresentam a evolução da me
 
 \subsection{Distribuição dos Erros de Teste e Predições}
 
-A Fig.~\ref{fig:boxplots} ilustra a distribuição do RMSE final no teste ao longo das $30$ repetições para as $9$ combinações de cada problema. Por fim, a Fig.~\ref{fig:predictions} exibe a qualidade do ajuste do melhor modelo de cada conjunto de dados: valores previstos contra medidos para o \textit{Concrete} ($\text{Arq. B} + \text{BFGS}$, $\text{RMSE} = 4{,}127\text{ MPa}$) e série observada contra prevista (com janela ampliada de $90\text{ dias}$) para \textit{Melbourne} ($\text{Arq. A} + \text{Adam}$, $\text{RMSE} = 2{,}145^{\circ}\text{C}$), acompanhados dos respetivos histogramas.
+A Fig.~\ref{fig:boxplots} ilustra a distribuição do RMSE final no teste ao longo das $30$ repetições para as $9$ combinações de cada problema. Por fim, a Fig.~\ref{fig:predictions} exibe a qualidade do ajuste do melhor modelo de cada conjunto de dados: valores previstos contra medidos para o \textit{Concrete} ($\text{Arq. B} + \text{BFGS}$, $\text{RMSE} = 4{,}127\text{ MPa}$) e série observada contra prevista (com janela ampliada de $90\text{ dias}$) para \textit{Melbourne} ($\text{Arq. B} + \text{Adam}$, $\text{RMSE} = 2{,}164^{\circ}\text{C}$, menor mediana), acompanhados dos respetivos histogramas.
 
 \begin{figure*}[htbp]
 \centering

@@ -40,6 +40,43 @@ function L = ann_lib()
     L.plot_predictions        = @plot_predictions;
 end
 
+function flush_output()
+    % FLUSH_OUTPUT : Força escrita na consola de forma compatível com Octave e MATLAB.
+    if exist('OCTAVE_VERSION', 'builtin')
+        fflush(stdout);
+    else
+        drawnow('update');
+    end
+end
+
+function y = calc_quantile(X, q, dim)
+    % CALC_QUANTILE : Calcula quantis por interpolação linear sem Statistics Toolbox.
+    if nargin < 3
+        if isvector(X) && size(X, 1) == 1
+            dim = 2;
+        else
+            dim = 1;
+        end
+    end
+    X_s = sort(X, dim);
+    N = size(X_s, dim);
+    if N == 1
+        y = X_s;
+        return;
+    end
+    pos = max(1.0, min(double(N), double(N) * q + 0.5));
+    lo = floor(pos);
+    hi = ceil(pos);
+    w = pos - lo;
+    if dim == 1
+        y = (1.0 - w) * X_s(lo, :) + w * X_s(hi, :);
+    elseif dim == 2
+        y = (1.0 - w) * X_s(:, lo) + w * X_s(:, hi);
+    else
+        error('calc_quantile suporta apenas dimensão 1 ou 2.');
+    end
+end
+
 function h = create_headless_fig(pos)
     if exist('OCTAVE_VERSION', 'builtin')
         warning('off', 'all');
@@ -329,7 +366,8 @@ function eda_info = eda_melbourne(dates, temps, fig_dir)
     eda_info.max_jump      = max_jump;
     eda_info.max_jump_date = sprintf('%s -> %s', dates{jump_idx}, dates{jump_idx+1});
     eda_info.jumps_over_10 = large_jumps;
-    eda_info.r_lag1        = corrcoef(temps(1:end-1), temps(2:end))(1, 2);
+    r_lag_mat              = corrcoef(temps(1:end-1), temps(2:end));
+    eda_info.r_lag1        = r_lag_mat(1, 2);
 
     % Figura 1: Série completa + Distribuição + Comportamento Mensal + Ciclo Anual
     h1 = create_headless_fig([100, 100, 1200, 800]);
@@ -1226,7 +1264,7 @@ function tuning_res = tune_learning_rates(dataset_splits, dataset_name, lr_grid,
     fprintf('--------------------------------------------------------------------------------\n');
     fprintf(' TUNING DE LEARNING RATE: %s (%d LRs x %d reps x %d épocas, B=%d)\n', dataset_name, n_lrs, n_reps, tune_epochs, batch_size);
     fprintf('--------------------------------------------------------------------------------\n');
-    fflush(stdout);
+    flush_output();
 
     for a = 1:3
         layers = build_arch(d_in, arch_ids{a});
@@ -1270,7 +1308,7 @@ function tuning_res = tune_learning_rates(dataset_splits, dataset_name, lr_grid,
             tuning_res.best_lr(a, alg) = lr_grid(best_idx);
 
             fprintf('  Arq %s | %-4s -> Melhor lr = %.2e (Mediana Val MSE = %.4f)\n', arch_ids{a}, alg_names{alg}, lr_grid(best_idx), best_val);
-            fflush(stdout);
+            flush_output();
         end
     end
     fprintf('\n');
@@ -1367,7 +1405,7 @@ function exp_res = run_final_experiments(dataset_splits, dataset_name, tuning_re
     fprintf(' EXPERIÊNCIAS FINAIS: %s (3 Arqs x 3 Algs x %d runs | Orçamento = %d ep-eq)\n', ...
             dataset_name, n_runs, max_epochs);
     fprintf('================================================================================\n');
-    fflush(stdout);
+    flush_output();
 
     for a = 1:3
         layers = build_arch(d_in, arch_ids{a});
@@ -1376,7 +1414,7 @@ function exp_res = run_final_experiments(dataset_splits, dataset_name, tuning_re
 
         fprintf('Arquitetura %s (%d parâmetros): a executar %d runs emparelhadas...\n', ...
                 arch_ids{a}, length(init_params(layers, 1)), n_runs);
-        fflush(stdout);
+        flush_output();
 
         for k = 1:n_runs
             % Regra comum (i): mesma inicialização para os 3 algoritmos na run k
@@ -1449,7 +1487,7 @@ function exp_res = run_final_experiments(dataset_splits, dataset_name, tuning_re
                     alg_names{alg}, mean(rmses), std(rmses), mean(r2s), std(r2s), mean(evals), mean(times));
         end
         fprintf('\n');
-        fflush(stdout);
+        flush_output();
     end
 end
 
@@ -1595,9 +1633,9 @@ function plot_training_progress(exp_res, fig_dir)
                     p_title = sprintf('%s - Arq %s (Validação)', exp_res.dataset_name, arch_ids{a});
                 end
 
-                q25 = quantile(mat, 0.25, 1);
-                q50 = quantile(mat, 0.50, 1);
-                q75 = quantile(mat, 0.75, 1);
+                q25 = calc_quantile(mat, 0.25, 1);
+                q50 = calc_quantile(mat, 0.50, 1);
+                q75 = calc_quantile(mat, 0.75, 1);
 
                 col = colors{alg};
                 % Banda IQR (Q25-Q75) com linhas tracejadas finas + Mediana sólida
@@ -1625,8 +1663,8 @@ function plot_training_progress(exp_res, fig_dir)
         for alg = 1:3
             mat_va = squeeze(va_all(alg, :, :));
             mat_tm = squeeze(tm_all(alg, :, :));
-            q50_va = quantile(mat_va, 0.50, 1);
-            q50_tm = quantile(mat_tm, 0.50, 1);
+            q50_va = calc_quantile(mat_va, 0.50, 1);
+            q50_tm = calc_quantile(mat_tm, 0.50, 1);
             plot(q50_tm, q50_va, '-', 'Color', colors{alg}, 'LineWidth', 1.8);
         end
         hold off;
@@ -1663,9 +1701,9 @@ function plot_custom_boxplots(exp_res, unit_str, fig_dir)
             vals = sort(squeeze(exp_res.test_rmse(a, alg, :)));
             labels{pos} = sprintf('%s-%s', arch_ids{a}, alg_names{alg});
 
-            q25 = quantile(vals, 0.25);
-            q50 = quantile(vals, 0.50);
-            q75 = quantile(vals, 0.75);
+            q25 = calc_quantile(vals, 0.25, 1);
+            q50 = calc_quantile(vals, 0.50, 1);
+            q75 = calc_quantile(vals, 0.75, 1);
             iqr_val = q75 - q25;
 
             low_whisker  = min(vals(vals >= q25 - 1.5 * iqr_val));
